@@ -190,13 +190,42 @@ contract UniswapV2Pair is UniswapV2ERC20 {
         uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
         require(amount0In > 0 || amount1In > 0, 'UniswapV2: INSUFFICIENT_INPUT_AMOUNT');
         { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
-        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
+        uint balance0Adjusted = 
+            balance0.mul(1000).sub(
+                amount0In.mul(
+                    IUniswapV2Factory(factory).swapFee(token0, token1) // Customized swap fee
+                )
+            );
+        uint balance1Adjusted = 
+            balance1.mul(1000).sub(
+                amount1In.mul(
+                    IUniswapV2Factory(factory).swapFee(token1, token0) // Customized swap fee
+                )
+            );
         require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'UniswapV2: K');
         }
+        _mintFromSwapFee(balance0, balance1, _reserve0, _reserve1);
 
         _update(balance0, balance1, _reserve0, _reserve1);
         emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+    }
+
+    // To have the fees accrue to a beneficiary instead of the pool, all we have to do is mint
+    // that amount of liquidity to the beneficiary. We look at how much K grew, 
+    // and mint the corresponding amount of LP tokens to the beneficiary.
+    // Should only be called from swap
+    function _mintFromSwapFee(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
+        address feeTo = IUniswapV2Factory(factory).feeTo();
+        if(feeTo != address(0)) {
+            // No longer using the adjusted balances since we want to mint the fees
+            uint denominator = uint(_reserve0).mul(_reserve1); // k_0
+            uint numerator = balance0.mul(balance1).sub(denominator); // k_1 - k_0
+            uint totalToMint = totalSupply.mul(numerator) / denominator * // (k_1 - k_0) / k_0 = (k_1 / k_0) - 1
+                IUniswapV2Factory(factory).tradingFeeMint(token0, token1) / 1000; 
+            if(totalToMint > 0) {
+                _mint(feeTo, totalToMint); 
+            }
+        }
     }
 
     // force balances to match reserves
