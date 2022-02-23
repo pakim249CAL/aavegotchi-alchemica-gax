@@ -68,7 +68,6 @@ export async function deployAlchemica(
 ): Promise<Contract> {
   let AlchemicaToken = await hre.ethers.getContractFactory("AlchemicaToken");
   let alchemicaToken = await AlchemicaToken.connect(owner).deploy();
-  console.log(await address(alchemicaToken));
   let proxy = await deployProxy(alchemicaToken, proxyAdmin);
   alchemicaToken = AlchemicaToken.attach(await address(proxy));
   await alchemicaToken.connect(owner).initialize(

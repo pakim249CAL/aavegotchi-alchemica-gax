@@ -16,9 +16,6 @@ import {
   ETHER,
   YEAR,
   FUD_MAX_SUPPLY,
-  FOMO_MAX_SUPPLY,
-  ALPHA_MAX_SUPPLY,
-  KEK_MAX_SUPPLY,
 } from "../helpers/constants";
 
 
@@ -26,12 +23,14 @@ describe("Alchemica", function () {
 
   let signers: Signer[];
   let owner: Signer;
+  let realmDiamond: Signer;
   let proxyAdmin: Contract;
   let fud: Contract;
 
   before(async function () {
     signers = await ethers.getSigners();
     owner = signers[0];
+    realmDiamond = signers[1];
     proxyAdmin = await deployProxyAdmin(owner);
     fud = await deployAlchemica(
       owner,
@@ -39,7 +38,7 @@ describe("Alchemica", function () {
       "Gotchiverse FUD",
       "FUD",
       FUD_MAX_SUPPLY,
-      signers[1],
+      realmDiamond,
       signers[2],
       signers[3],
       );
@@ -49,6 +48,11 @@ describe("Alchemica", function () {
     expect(await fud.cap()).to.equal(FUD_MAX_SUPPLY);
     expect(await fud.balanceOf(signers[2].getAddress())).to.equal(FUD_MAX_SUPPLY.div(10));
     expect(await fud.balanceOf(signers[3].getAddress())).to.equal(FUD_MAX_SUPPLY.div(10));
+  });
+
+  it("Realm diamond should have access to minting", async function() {
+    await fud.connect(realmDiamond).mint(await signers[4].getAddress(), 1);
+    expect(await fud.balanceOf(await signers[4].getAddress())).to.equal(1);
   });
 
 
