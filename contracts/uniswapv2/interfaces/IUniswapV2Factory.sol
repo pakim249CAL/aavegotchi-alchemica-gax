@@ -10,8 +10,6 @@ interface IUniswapV2Factory {
     function migrator() external view returns (address);
 
     function getPair(address tokenA, address tokenB) external view returns (address pair);
-    function swapFee(address tokenA, address tokenB) external view returns (uint fee);
-    function tradingFeeMint(address tokenA, address tokenB) external view returns (uint fee);
     function allPairs(uint) external view returns (address pair);
     function allPairsLength() external view returns (uint);
 
