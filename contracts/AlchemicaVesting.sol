@@ -3,11 +3,12 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract AlchemicaVesting is Ownable {
+contract AlchemicaVesting is Initializable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
   event TokensReleased(address token, uint256 amount);
@@ -47,10 +48,12 @@ contract AlchemicaVesting is Ownable {
     * will decrease geometrically from this value. scaled by precision
     * @param revocable whether the vesting is revocable or not
     */
-  constructor (address beneficiary, uint256 start, uint256 decayFactor, bool revocable) public {
+  function initialize(address beneficiary, uint256 start, uint256 decayFactor, bool revocable) public initializer {
     require(beneficiary != address(0), "TokenVesting: beneficiary is the zero address");
     require(start >= block.timestamp || start == 0, "TokenVesting: start must after the current block timestamp or 0");
     require(decayFactor > 0 && decayFactor < PRECISION, "TokenVesting: invalid decay factor");
+
+    __Ownable_init();
 
     _beneficiary = beneficiary;
     _start = start == 0 ? block.timestamp : start;

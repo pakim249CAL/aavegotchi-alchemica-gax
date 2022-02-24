@@ -33,6 +33,11 @@ contract AlchemicaToken is OwnableUpgradeable, ERC20CappedUpgradeable, ERC20Perm
     _mint(_to, _value);
   }
 
+  /// @notice Recover tokens mistakenly sent to this contract.
+  function recoverERC20(address _token, uint256 _value) public virtual onlyOwner {
+    IERC20Upgradeable(_token).transfer(msg.sender, _value);
+  }
+
   function _mint(address _to, uint256 _value) internal virtual override(
     ERC20CappedUpgradeable, 
     ERC20Upgradeable

@@ -7,31 +7,12 @@ import {
   ContractFactory,} 
   from "ethers";
 
-export async function address(
-  contractOrSigner: Contract | Signer,
-) : Promise<string> {
-  if (contractOrSigner instanceof Contract) {
-    return contractOrSigner.address;
-  } else {
-    return await contractOrSigner.getAddress();
-  }
-}
-
-export async function deployVestingContract(
-  owner: Signer,
-  beneficiary: Signer,
-  start: BigNumber,
-  decayFactor: BigNumber,
-  revocable: boolean,
-): Promise<Contract> {
-  let AlchemicaVesting = await hre.ethers.getContractFactory("AlchemicaVesting");
-  return await AlchemicaVesting.connect(owner).deploy(
-    await beneficiary.getAddress(),
-    start,
-    decayFactor,
-    revocable,
-  );;
-}
+import {
+  increaseTime,
+  mine,
+  currentTimestamp,
+  address
+} from "./utils";
 
 export async function deployProxyAdmin(
   owner: Signer,
@@ -55,6 +36,26 @@ export async function getProxyContract(
   return await Proxy.attach(contract.address);
 }
 
+export async function deployVestingContract(
+  owner: Signer,
+  proxyAdmin: Signer | Contract,
+  beneficiary: Signer,
+  start: BigNumber,
+  decayFactor: BigNumber,
+  revocable: boolean,
+): Promise<Contract> {
+  let AlchemicaVesting = await hre.ethers.getContractFactory("AlchemicaVesting");
+  let implementation =  await AlchemicaVesting.connect(owner).deploy();
+  let proxy = await deployProxy(implementation, proxyAdmin);
+  let alchemicaVesting = await AlchemicaVesting.attach(proxy.address);
+  await alchemicaVesting.connect(owner).initialize(
+    await beneficiary.getAddress(),
+    start,
+    decayFactor,
+    revocable,
+  )
+  return alchemicaVesting;
+}
 
 export async function deployAlchemica(
   owner: Signer,
@@ -67,9 +68,9 @@ export async function deployAlchemica(
   gameplayVestingContract: Contract | Signer,
 ): Promise<Contract> {
   let AlchemicaToken = await hre.ethers.getContractFactory("AlchemicaToken");
-  let alchemicaToken = await AlchemicaToken.connect(owner).deploy();
-  let proxy = await deployProxy(alchemicaToken, proxyAdmin);
-  alchemicaToken = AlchemicaToken.attach(await address(proxy));
+  let implementation = await AlchemicaToken.connect(owner).deploy();
+  let proxy = await deployProxy(implementation, proxyAdmin);
+  let alchemicaToken = AlchemicaToken.attach(await address(proxy));
   await alchemicaToken.connect(owner).initialize(
     name,
     symbol,
@@ -88,17 +89,3 @@ export async function deployDEX(): Promise<Contract> {
   return contract;
 }
 
-export async function increaseTime(time: number): Promise<void> {
-  await hre.network.provider.send("evm_setNextBlockTimestamp", [await currentTimestamp() + time]);
-}
-
-export async function mine(times: number = 1): Promise<void> {
-  for (let i = 0; i < times; i++) {
-    await hre.network.provider.send("evm_mine", []);
-  }
-}
-
-export async function currentTimestamp(): Promise<number> {
-  let block = await hre.ethers.provider.getBlock("latest");
-  return block.timestamp;
-}

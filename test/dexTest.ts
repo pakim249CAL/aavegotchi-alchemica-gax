@@ -9,10 +9,12 @@ import {
 import { expect } from "chai";
 import {
   deployVestingContract,
+} from "../helpers/helpers";
+import {
   increaseTime,
   mine,
   currentTimestamp,
-} from "../helpers/helpers";
+} from "../helpers/utils";
 import {
   GWEI,
   ETHER,

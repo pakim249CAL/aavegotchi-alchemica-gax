@@ -9,10 +9,15 @@ import {
 import { expect } from "chai";
 import {
   deployVestingContract,
+  deployProxyAdmin,
+} from "../helpers/helpers";
+import {
+  address,
   increaseTime,
   mine,
   currentTimestamp,
-} from "../helpers/helpers";
+  aboutEquals,
+} from "../helpers/utils";
 import {
   GWEI,
   ETHER,
@@ -26,24 +31,39 @@ describe("Vesting", function () {
   let owner: Signer;
   let beneficiary: Signer;
   let dao: Signer;
+  let proxyAdmin: Contract;
   let token: Contract;
+  let anotherToken: Contract;
   let vestingContract: Contract;
-  let startTime: BigNumber;
 
   before(async function () {
     signers = await ethers.getSigners();
     owner = signers[0];
     beneficiary = signers[1];
     dao = signers[2];
+    proxyAdmin = await deployProxyAdmin(owner);
     let tokenFactory = await ethers.getContractFactory("Token");
     token = await tokenFactory.deploy();
+    anotherToken = await tokenFactory.deploy();
     await token.deployed();
+    await anotherToken.deployed();
+  });
+
+  beforeEach(async function() {
+    await token.burn(await address(beneficiary), await token.balanceOf(await address(beneficiary)));
+    await token.burn(await address(owner), await token.balanceOf(await address(owner)));
+    await anotherToken.burn(await address(beneficiary), await token.balanceOf(await address(beneficiary)));
+    await anotherToken.burn(await address(owner), await token.balanceOf(await address(owner)));
+    expect(await token.balanceOf(await address(beneficiary))).to.be.equal(0);
+    expect(await token.balanceOf(await address(owner))).to.be.equal(0);
   });
 
   describe("Nonrevocable Vesting Contract", function () {
+    let period = 0;
     it("Should deploy an unrevocable vesting contract and deposit some tokens", async () => {
       vestingContract = await deployVestingContract(
         owner,
+        proxyAdmin,
         beneficiary,
         BigNumber.from("0"),
         ETHER.div(5),
@@ -62,33 +82,44 @@ describe("Vesting", function () {
     it("Should release ~10% of the tokens in the first six months", async () => { 
       await increaseTime(YEAR / 2);
       await mine();
-      expect(await vestingContract.releasableAmount(token.address)).to.be.gt(ETHER.div(10).sub(GWEI.mul(1000)));
-      expect(await vestingContract.releasableAmount(token.address)).to.be.lt(ETHER.div(10).add(GWEI.mul(1000)));
+      expect(aboutEquals(await vestingContract.releasableAmount(token.address), ETHER.div(10))).to.equal(true);
+      await vestingContract.release(token.address);
+      expect(aboutEquals(await token.balanceOf(address(beneficiary)), ETHER.div(10))).to.equal(true);
     });
 
-    it("Should release ~20% of the tokens after the first year", async() => {
+    it("Should release ~10% more of the tokens after the first year (20% total)", async() => {
       await increaseTime(YEAR / 2);
       await mine();
-      expect(await vestingContract.releasableAmount(token.address)).to.be.gt(ETHER.div(5).sub(GWEI.mul(1000)));
-      expect(await vestingContract.releasableAmount(token.address)).to.be.lt(ETHER.div(5).add(GWEI.mul(1000)));
+      expect(aboutEquals(await vestingContract.releasableAmount(token.address), ETHER.div(10))).to.equal(true);
+      await vestingContract.release(token.address);
+      expect(aboutEquals(await token.balanceOf(address(beneficiary)), ETHER.div(10))).to.equal(true);
     });
 
-    it("Should release ~28% of the tokens after 18 months", async() => {
+    it("Should release ~8% of the tokens after 18 months", async() => {
       await increaseTime(YEAR / 2);
       await mine();
-      expect(await vestingContract.releasableAmount(token.address)).to.be.gt(ETHER.mul(28).div(100).sub(GWEI.mul(1000)));
-      expect(await vestingContract.releasableAmount(token.address)).to.be.lt(ETHER.mul(28).div(100).add(GWEI.mul(1000)));
+      expect(aboutEquals(await vestingContract.releasableAmount(token.address), ETHER.mul(8).div(100))).to.equal(true);
+      await vestingContract.release(token.address);
+      expect(aboutEquals(await token.balanceOf(address(beneficiary)), ETHER.mul(8).div(100))).to.equal(true);
     });
 
-    it("Should release ~36% of the tokens after 24 months", async() => {
+    it("Should release ~8% of the tokens after 24 months", async() => {
       await increaseTime(YEAR / 2);
       await mine();
-      expect(await vestingContract.releasableAmount(token.address)).to.be.gt(ETHER.mul(36).div(100).sub(GWEI.mul(1000)));
-      expect(await vestingContract.releasableAmount(token.address)).to.be.lt(ETHER.mul(36).div(100).add(GWEI.mul(1000)));
+      expect(aboutEquals(await vestingContract.releasableAmount(token.address), ETHER.mul(8).div(100))).to.equal(true);
+      await vestingContract.release(token.address);
+      expect(aboutEquals(await token.balanceOf(address(beneficiary)), ETHER.mul(8).div(100))).to.equal(true);
+    });
+
+    it("Should release ~12.8% of the tokens after 36 months", async() => {
+      await increaseTime(YEAR);
+      await mine();
+      expect(aboutEquals(await vestingContract.releasableAmount(token.address), ETHER.mul(128).div(1000))).to.equal(true);
+      await vestingContract.release(token.address);
+      expect(aboutEquals(await token.balanceOf(address(beneficiary)), ETHER.mul(128).div(1000))).to.equal(true);
     });
 
     it("Releasable amount should strictly increase over time", async() => {
-      let startTime = await vestingContract.start();
       // Testing for 20 years
       for(let i = 0; i < 240; i++) {
         let prevReleasable = await vestingContract.releasableAmount(token.address);
@@ -99,28 +130,29 @@ describe("Vesting", function () {
     });
 
     it("Should do a partial release.", async() => {
-      await increaseTime(YEAR / 2);
-      expect(await token.balanceOf(await beneficiary.getAddress())).to.equal(BigNumber.from("0"));
+      await increaseTime(YEAR);
       await vestingContract.partialRelease(token.address, GWEI);
-      expect(await token.balanceOf(await beneficiary.getAddress())).to.equal(GWEI);
-      await token.burn(await beneficiary.getAddress(), await token.balanceOf(await beneficiary.getAddress()));
+      expect(await token.balanceOf(await address(beneficiary))).to.equal(GWEI);
     });
 
     it("Should release the rest of the tokens", async () => {
-      expect(await token.balanceOf(await beneficiary.getAddress())).to.equal(BigNumber.from("0"));
-      let releasableAmount = await vestingContract.releasableAmount(token.address);
       await vestingContract.release(token.address);
-      expect(await token.balanceOf(await beneficiary.getAddress())).to.be.gt(releasableAmount.sub(GWEI.mul(1000)));
-      expect(await token.balanceOf(await beneficiary.getAddress())).to.be.lt(releasableAmount.add(GWEI.mul(1000)));
-      await token.burn(await beneficiary.getAddress(), await token.balanceOf(await beneficiary.getAddress()));
+      expect(await token.balanceOf(await address(beneficiary))).to.be.gt(BigNumber.from("0"));
     });
   
     it("Deposit more tokens. More tokens should release.", async() => {
-      expect(await token.balanceOf(await beneficiary.getAddress())).to.equal(BigNumber.from("0"));
-      await token.connect(owner).mint(vestingContract.address, ETHER);
+      await token.connect(owner).mint(await address(vestingContract), ETHER);
       await vestingContract.release(token.address);
-      expect(await token.balanceOf(beneficiary.getAddress())).to.be.gt(GWEI.mul(1000000));
+      expect(await token.balanceOf(await address(beneficiary))).to.be.gt(0);
     });
+
+    it("Should release multiple tokens when multiple tokens are deposited.", async() => {
+      await token.connect(owner).mint(await address(vestingContract), ETHER);
+      await anotherToken.connect(owner).mint(await address(vestingContract), ETHER);
+      await vestingContract.batchRelease([token.address, anotherToken.address]);
+      expect(await token.balanceOf(await address(beneficiary))).to.be.gt(0);
+      expect(await anotherToken.balanceOf(await address(beneficiary))).to.be.gt(0);
+    })
 
   });
 
@@ -134,6 +166,7 @@ describe("Vesting", function () {
 
       vestingContract = await deployVestingContract(
         owner,
+        proxyAdmin,
         beneficiary,
         BigNumber.from("0"),
         BigNumber.from("2000"),
@@ -159,62 +192,6 @@ describe("Vesting", function () {
       expect(await token.balanceOf(vestingContract.address)).to.equal(BigNumber.from(0));
       expect(await token.balanceOf(await beneficiary.getAddress())).to.be.gt(BigNumber.from(0));
       expect(await token.balanceOf(await owner.getAddress())).to.be.gt(ownerBalance);
-    });
-
-  });
-
-  describe("Alchemica", function () {
-    let gameplayVestingContract: Contract;
-    let ecosystemVestingContract: Contract;
-    let fud: Contract;
-    let alpha: Contract;
-    it("Should deploy vesting contracts and successfully deploy an alchemica balance to each on alchemica construction", async () => {
-      gameplayVestingContract = await deployVestingContract(
-        owner,
-        beneficiary,
-        BigNumber.from("0"),
-        ETHER.div(5),
-        false,
-      );
-      ecosystemVestingContract = await deployVestingContract(
-        owner,
-        dao,
-        BigNumber.from("0"),
-        ETHER.div(5),
-        false,
-      );
-      const AlchemicaToken = await hre.ethers.getContractFactory("AlchemicaToken");
-      fud = await AlchemicaToken.deploy(
-        "FUD", 
-        "FUD", 
-        ETHER, 
-        await beneficiary.getAddress(), 
-        gameplayVestingContract.address,
-        ecosystemVestingContract.address,
-      );
-      expect(await fud.balanceOf(gameplayVestingContract.address)).to.equal(ETHER.div(10));
-      expect(await fud.balanceOf(ecosystemVestingContract.address)).to.equal(ETHER.div(10));
-    });
-
-    it("Should allow alchemica releases from multiple alchemica tokens", async() => {
-      const AlchemicaToken = await hre.ethers.getContractFactory("AlchemicaToken");
-      alpha = await AlchemicaToken.deploy(
-        "ALPHA", 
-        "ALPHA", 
-        ETHER.mul(100), 
-        await beneficiary.getAddress(), 
-        gameplayVestingContract.address,
-        ecosystemVestingContract.address,
-      );
-      await increaseTime(YEAR);
-      await gameplayVestingContract.release(alpha.address);
-      await gameplayVestingContract.release(fud.address);
-      await ecosystemVestingContract.release(alpha.address);
-      await ecosystemVestingContract.release(fud.address);
-      expect(await alpha.balanceOf(await dao.getAddress())).to.be.gt(0);
-      expect(await fud.balanceOf(await dao.getAddress())).to.be.gt(0);
-      expect(await alpha.balanceOf(await beneficiary.getAddress())).to.be.gt(0);
-      expect(await fud.balanceOf(await beneficiary.getAddress())).to.be.gt(0);
     });
   });
 });
