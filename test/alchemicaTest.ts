@@ -15,7 +15,7 @@ import {
   GWEI,
   ETHER,
   YEAR,
-  FUD_MAX_SUPPLY,
+  FUD_PARAMS
 } from "../helpers/constants";
 
 
@@ -35,9 +35,9 @@ describe("Alchemica", function () {
     fud = await deployAlchemica(
       owner,
       proxyAdmin,
-      "Gotchiverse FUD",
-      "FUD",
-      FUD_MAX_SUPPLY,
+      FUD_PARAMS.name,
+      FUD_PARAMS.symbol,
+      FUD_PARAMS.supply,
       realmDiamond,
       signers[2],
       signers[3],
@@ -45,9 +45,9 @@ describe("Alchemica", function () {
   });
 
   it("should mint 10% of the total supply to the vesting contracts", async function() {
-    expect(await fud.cap()).to.equal(FUD_MAX_SUPPLY);
-    expect(await fud.balanceOf(signers[2].getAddress())).to.equal(FUD_MAX_SUPPLY.div(10));
-    expect(await fud.balanceOf(signers[3].getAddress())).to.equal(FUD_MAX_SUPPLY.div(10));
+    expect(await fud.cap()).to.equal(FUD_PARAMS.supply);
+    expect(await fud.balanceOf(signers[2].getAddress())).to.equal(FUD_PARAMS.supply.div(10));
+    expect(await fud.balanceOf(signers[3].getAddress())).to.equal(FUD_PARAMS.supply.div(10));
   });
 
   it("Realm diamond should have access to minting", async function() {

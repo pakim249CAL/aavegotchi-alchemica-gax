@@ -26,7 +26,6 @@ import {
 
 describe("Vesting", function () {
 
-  const FUD_MAX_SUPPLY = BigNumber.from("100000000000").mul(ETHER);
   let signers: Signer[];
   let owner: Signer;
   let beneficiary: Signer;
@@ -59,7 +58,6 @@ describe("Vesting", function () {
   });
 
   describe("Nonrevocable Vesting Contract", function () {
-    let period = 0;
     it("Should deploy an unrevocable vesting contract and deposit some tokens", async () => {
       vestingContract = await deployVestingContract(
         owner,

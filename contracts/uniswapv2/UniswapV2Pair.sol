@@ -211,16 +211,16 @@ contract UniswapV2Pair is UniswapV2ERC20 {
     }
 
     // To have the fees accrue to a beneficiary instead of the pool, all we have to do is mint
-    // that amount of liquidity to the beneficiary. We look at how much K grew, 
+    // that amount of liquidity to the beneficiary. We look at how much sqrt(K) grew, 
     // and mint the corresponding amount of LP tokens to the beneficiary.
     // Should only be called from swap
     function _mintFromSwapFee(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
         address feeTo = IUniswapV2Factory(factory).feeTo();
         if(feeTo != address(0)) {
             // No longer using the adjusted balances since we want to mint the fees
-            uint denominator = uint(_reserve0).mul(_reserve1); // k_0
-            uint numerator = balance0.mul(balance1).sub(denominator); // k_1 - k_0
-            uint totalToMint = totalSupply.mul(numerator) / denominator * // (k_1 - k_0) / k_0 = (k_1 / k_0) - 1
+            uint k_0 = Math.sqrt(uint(_reserve0).mul(_reserve1));
+            uint k_1 = Math.sqrt(balance0.mul(balance1));
+            uint totalToMint = totalSupply.mul(k_1.sub(k_0)) / k_0 * // (k_1 - k_0) / k_0 = (k_1 / k_0) - 1
                 IUniswapV2Factory(factory).tradingFeeMint(token0, token1) / 1000; 
             if(totalToMint > 0) {
                 _mint(feeTo, totalToMint); 
