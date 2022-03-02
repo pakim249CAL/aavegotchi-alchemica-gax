@@ -70,7 +70,7 @@ describe("GAX", function() {
     });
 
     it("should deploy GAX router", async function() {
-      let GAXRouter = await ethers.getContractFactory("UniswapV2Router02");
+      let GAXRouter = await ethers.getContractFactory("UniswapV2Router01");
       router = await GAXRouter.connect(owner).deploy(await address(factory), "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"); //WMATIC address
       expect(await address(router)).to.not.be.equal("0x0000000000000000000000000000000000000000");
     });
