@@ -8,8 +8,9 @@ import {
   BigNumber } from "ethers";
 import { expect } from "chai";
 import {
+  deployAlchemicaImplementation,
+  deployAndInitializeAlchemicaProxy,
   deployProxyAdmin,
-  deployAlchemica,
 } from "../helpers/helpers";
 import {
   GWEI,
@@ -17,6 +18,9 @@ import {
   YEAR,
   FUD_PARAMS
 } from "../helpers/constants";
+import {
+  address,
+} from "../helpers/utils";
 
 
 describe("Alchemica", function () {
@@ -31,17 +35,19 @@ describe("Alchemica", function () {
     signers = await ethers.getSigners();
     owner = signers[0];
     realmDiamond = signers[1];
-    proxyAdmin = await deployProxyAdmin(owner);
-    fud = await deployAlchemica(
+    proxyAdmin = (await deployProxyAdmin(owner)).contract;
+    let implementation = await deployAlchemicaImplementation(owner);
+    fud = (await deployAndInitializeAlchemicaProxy(
       owner,
+      implementation.contract,
       proxyAdmin,
       FUD_PARAMS.name,
       FUD_PARAMS.symbol,
       FUD_PARAMS.supply,
-      realmDiamond,
+      await address(realmDiamond),
       signers[2],
       signers[3],
-      );
+      )).contract;
   });
 
   it("should mint 10% of the total supply to the vesting contracts", async function() {

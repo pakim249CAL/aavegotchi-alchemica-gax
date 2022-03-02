@@ -8,7 +8,8 @@ import {
   BigNumber } from "ethers";
 import { expect } from "chai";
 import {
-  deployVestingContract,
+  deployVestingImplementation,
+  deployAndInitializeVestingProxy,
   deployProxyAdmin,
 } from "../helpers/helpers";
 import {
@@ -34,16 +35,18 @@ describe("Vesting", function () {
   let token: Contract;
   let anotherToken: Contract;
   let vestingContract: Contract;
+  let vestingImplementation: Contract;
 
   before(async function () {
     signers = await ethers.getSigners();
     owner = signers[0];
     beneficiary = signers[1];
     dao = signers[2];
-    proxyAdmin = await deployProxyAdmin(owner);
+    proxyAdmin = (await deployProxyAdmin(owner)).contract;
     let tokenFactory = await ethers.getContractFactory("Token");
     token = await tokenFactory.deploy();
     anotherToken = await tokenFactory.deploy();
+    vestingImplementation = (await deployVestingImplementation(owner)).contract;
     await token.deployed();
     await anotherToken.deployed();
   });
@@ -59,14 +62,15 @@ describe("Vesting", function () {
 
   describe("Nonrevocable Vesting Contract", function () {
     it("Should deploy an unrevocable vesting contract and deposit some tokens", async () => {
-      vestingContract = await deployVestingContract(
+      vestingContract = (await deployAndInitializeVestingProxy(
         owner,
+        vestingImplementation,
+        await address(beneficiary),
         proxyAdmin,
-        beneficiary,
         BigNumber.from("0"),
         ETHER.div(5),
         false,
-      );
+      )).contract;
       expect(await vestingContract.beneficiary()).to.equal(await beneficiary.getAddress());
       expect(await vestingContract.revocable()).to.equal(false);
       expect(await vestingContract.released(token.address)).to.equal(BigNumber.from("0"));
@@ -162,14 +166,15 @@ describe("Vesting", function () {
         await token.balanceOf(await beneficiary.getAddress()));
       expect(await token.balanceOf(await beneficiary.getAddress())).to.equal(BigNumber.from(0));
 
-      vestingContract = await deployVestingContract(
+      vestingContract = (await deployAndInitializeVestingProxy(
         owner,
+        vestingImplementation,
+        await address(beneficiary),
         proxyAdmin,
-        beneficiary,
         BigNumber.from("0"),
         BigNumber.from("2000"),
         true,
-      );
+      )).contract;
       expect(await vestingContract.beneficiary()).to.equal(await beneficiary.getAddress());
       expect(await vestingContract.revocable()).to.equal(true);
       expect(await vestingContract.released(token.address)).to.equal(BigNumber.from(0));
