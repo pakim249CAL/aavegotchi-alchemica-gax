@@ -57,8 +57,17 @@ describe("Alchemica", function () {
   });
 
   it("Realm diamond should have access to minting", async function() {
-    await fud.connect(realmDiamond).mint(await signers[4].getAddress(), 1);
-    expect(await fud.balanceOf(await signers[4].getAddress())).to.equal(1);
+    await fud.connect(realmDiamond).mint(await owner.getAddress(), ETHER);
+    expect(await fud.balanceOf(await owner.getAddress())).to.equal(ETHER);
+  });
+
+  it("Should batch transfer", async function() {
+    await fud.connect(owner).batchTransfer(
+      [await signers[4].getAddress(), await signers[5].getAddress(), await signers[4].getAddress()],
+      [2, 1, 5]
+    );
+    expect(await fud.balanceOf(await signers[4].getAddress())).to.equal(7);
+    expect(await fud.balanceOf(await signers[5].getAddress())).to.equal(1);
   });
 
 

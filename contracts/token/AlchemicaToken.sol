@@ -45,4 +45,10 @@ contract AlchemicaToken is OwnableUpgradeable, ERC20CappedUpgradeable, ERC20Perm
     ERC20CappedUpgradeable._mint(_to, _value);
   }
 
+  function batchTransfer(address[] calldata _to, uint256[] calldata _value) public {
+    for(uint i = 0; i < _to.length; i++) {
+      _transfer(_msgSender(), _to[i], _value[i]);
+    }
+  }
+
 }
