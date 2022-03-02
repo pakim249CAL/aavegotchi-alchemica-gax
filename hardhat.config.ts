@@ -4,6 +4,7 @@ import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-etherscan";
 import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
 import "solidity-coverage";
 import "hardhat-abi-exporter";
 import "@typechain/hardhat";
@@ -72,11 +73,27 @@ export default {
     mainnet: {
       url: `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      maxFeePerGas: 1000 * 1000 * 1000 * 150,
+      maxPriorityFeePerGas: 1000 * 1000 * 1000,
+    },
+    kovan: {
+      url: `https://eth-kovan.alchemyapi.io/v2/${ALCHEMY_KEY}`,
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      maxFeePerGas: 1000 * 1000 * 1000 * 50,
+      maxPriorityFeePerGas: 1000 * 1000 * 1000,
     },
     matic: {
       url: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      gas: 1000 * 1000 * 1000 * 700,
+      maxFeePerGas: 1000 * 1000 * 1000 * 50,
+      maxPriorityFeePerGas: 1000 * 1000 * 1000,
+    },
+    mumbai: {
+      url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_KEY}`,
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      maxFeePerGas: 1000 * 1000 * 1000 * 2,
+      maxPriorityFeePerGas: 1000 * 1000 * 1000,
+      gas: 20000000,
     },
   },
   gasReporter: {
@@ -87,7 +104,13 @@ export default {
     token: "ETH",
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: process.env.POLYGONSCAN_API_KEY/*
+      {
+        mainnet: process.env.ETHERSCAN_API_KEY || "PLACEHOLDER",
+        matic: process.env.POLYGONSCAN_API_KEY || "PLACEHOLDER",
+        mumbai: process.env.POLYGONSCAN_API_KEY || "PLACEHOLDER",
+        kovan: process.env.ETHERSCAN_API_KEY || "PLACEHOLDER",
+      }*/
   },
   abiExporter: {
     path: "./build",
