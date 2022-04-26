@@ -1,11 +1,9 @@
-pragma solidity 0.8.0;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract Token is ERC20 {
-
-  constructor() ERC20("Token", "TOKEN") {
-  }
+  constructor() ERC20("Token", "TOKEN") {}
 
   function mint(address _account, uint256 _amount) public {
     _mint(_account, _amount);
@@ -14,5 +12,4 @@ contract Token is ERC20 {
   function burn(address _account, uint256 _amount) public {
     _burn(_account, _amount);
   }
-
 }
