@@ -2,9 +2,10 @@ node_modules
 .env
 
 #Hardhat files
-cache
+cache/
 artifacts
 .idea
 .DS_Store
 build
 typechain-types
+out/
