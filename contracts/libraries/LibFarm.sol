@@ -55,6 +55,11 @@ library LibFarm {
     IERC20 _lpToken,
     bool _withUpdate
   ) internal {
+    require(
+      !s().poolTokens[address(_lpToken)],
+      "add: LP token already added"
+    );
+    s().poolTokens[address(_lpToken)] = true;
     if (_withUpdate) {
       massUpdatePools();
     }
@@ -78,6 +83,10 @@ library LibFarm {
     uint256 _allocPoint,
     bool _withUpdate
   ) internal {
+    require(
+      s().poolTokens[address(s().poolInfo[_pid].lpToken)],
+      "set: LP token not added"
+    );
     if (_withUpdate) {
       massUpdatePools();
     }
