@@ -13,6 +13,7 @@ import "@contracts/diamond/Diamond.sol";
 
 import "@contracts/facets/FarmFacet.sol";
 import "@contracts/init/FarmInit.sol";
+import "@contracts/init/ReentrancyGuardInit.sol";
 
 import "@contracts/test/Token.sol";
 
@@ -31,6 +32,7 @@ contract TestSetupFarm is Test {
   IDiamondCut.FacetCut[] farmCuts;
 
   FarmInit farmInit;
+  ReentrancyGuardInit reentrancyGuardInit;
 
   Token[] lpTokens;
   Token rewardToken;
@@ -58,8 +60,8 @@ contract TestSetupFarm is Test {
     populateFarmCuts();
     IDiamondCut(address(diamond)).diamondCut(
       diamondCuts,
-      address(0),
-      ""
+      address(reentrancyGuardInit),
+      abi.encodeWithSelector(reentrancyGuardInit.init.selector)
     );
     startBlock = block.number + 100;
     IDiamondCut(address(diamond)).diamondCut(
@@ -82,6 +84,7 @@ contract TestSetupFarm is Test {
   }
 
   function deployFarm() internal {
+    reentrancyGuardInit = new ReentrancyGuardInit();
     farmInit = new FarmInit();
     farmFacet = new FarmFacet();
   }

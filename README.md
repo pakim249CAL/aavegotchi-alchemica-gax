@@ -1,5 +1,3 @@
-# Solidity Template
+# Aavegotchi GAX and Farm
 
-Use node 16 and run npm i
-
-Create a .env file with your private key and alchemy key like in the template
+This repository contains contracts and tests for the Aavegotchi Alchemica GAX and a MasterChef contract modified to be a diamond. Tests are built on Foundry. After installing the latest version of Foundry, run foundryup and forge test to run tests.
