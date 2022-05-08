@@ -1,8 +1,11 @@
 pragma solidity 0.8.13;
 
 import "./TestSetupFarm.t.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract FarmTest is TestSetupFarm {
+  using Strings for uint256;
+
   function testInit() public {
     assertEq(farm.startBlock(), startBlock);
     assertEq(address(farm.rewardToken()), address(rewardToken));
@@ -94,8 +97,9 @@ contract FarmTest is TestSetupFarm {
     assertEq(lpTokens[0].balanceOf(address(farm)), 0);
   }
 
-  function testPending(uint256 amount, uint8 numTokens) public {
-    vm.assume(amount > 0 && amount <= 1e50);
+  function testPending(uint128 _amount, uint8 numTokens) public {
+    uint256 amount = _amount;
+    vm.assume(amount > 0 && amount <= 1e30);
     vm.assume(numTokens > 0 && numTokens <= 20);
 
     vm.roll(startBlock);
@@ -109,11 +113,51 @@ contract FarmTest is TestSetupFarm {
       farm.deposit(i, amount);
     }
 
-    uint256 pending;
-    for (uint256 i = 0; i < 100; i++) {
+    for (uint256 i; i < 100; i++) {
       vm.roll(block.number + i);
+
+      uint256 pending;
+      uint256 expectedTotalPending;
+      uint256 blocksPassed = block.number - startBlock;
+      uint256 k;
+      for (; k < blocksPassed / farm.decayPeriod(); k++) {
+        expectedTotalPending += farm.rewardPerBlock(k) * 38000 * 365;
+      }
+      expectedTotalPending +=
+        farm.rewardPerBlock(k) *
+        (blocksPassed % farm.decayPeriod());
+      assertEq(farm.totalPending(), expectedTotalPending, "eq1");
       for (uint256 j = 0; j < numTokens; j++) {
-        assertGe(farm.pending(j, address(user1)), pending);
+        uint256 expectedPending = expectedTotalPending / numTokens;
+        uint256 roundingTolerance = expectedPending / 100;
+        assertLe(
+          farm.pending(j, address(user1)),
+          expectedPending,
+          string(
+            abi.encodePacked(
+              "le1, i: ",
+              i.toString(),
+              " j: ",
+              j.toString()
+            )
+          )
+        );
+        assertGe(
+          farm.pending(j, address(user1)),
+          expectedPending >= roundingTolerance
+            ? expectedPending - roundingTolerance
+            : 0,
+          string(
+            abi.encodePacked(
+              "ge1, i: ",
+              i.toString(),
+              " j: ",
+              j.toString()
+            )
+          )
+        );
+        assertGe(farm.pending(j, address(user1)), pending, "ge2");
+        pending = farm.pending(j, address(user1));
       }
     }
   }
@@ -126,9 +170,6 @@ contract FarmTest is TestSetupFarm {
     vm.assume(amount > 1 && amount <= 1e50);
     vm.assume(period > 0 && period < 200);
     vm.assume(numTokens > 0 && numTokens <= 5);
-
-    rewardToken.mint(address(this), 1e20);
-    rewardToken.approve(address(farm), 1e20);
 
     for (uint256 i = 0; i < numTokens; i++) {
       farm.add(1, lpTokens[i], true);

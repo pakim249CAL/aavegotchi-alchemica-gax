@@ -182,4 +182,8 @@ contract FarmFacet is Ownable, ReentrancyGuard {
   function startBlock() external view returns (uint256) {
     return s().startBlock;
   }
+
+  function decayPeriod() external view returns (uint256) {
+    return s().decayPeriod;
+  }
 }
