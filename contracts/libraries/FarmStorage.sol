@@ -17,19 +17,17 @@ struct PoolInfo {
 }
 
 library FarmStorage {
-  // Info of each user.
-
   struct Layout {
-    uint256 status; // Address of the ERC20 Token contract.
-    IERC20 rewardToken;
+    IERC20 rewardToken; // Address of the ERC20 Token contract.
+    uint256 totalRewards; // Amount of rewards to be distributed over the lifetime of the contract
     uint256 paidOut; // The total amount of ERC20 that's paid out as reward.
-    uint256 rewardPerBlock; // ERC20 tokens rewarded per block.
     PoolInfo[] poolInfo; // Info of each pool.
     mapping(address => bool) poolTokens; // Keep track of which LP tokens are assigned to a pool
     mapping(uint256 => mapping(address => UserInfo)) userInfo; // Info of each user that stakes LP tokens.
     uint256 totalAllocPoint; // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 startBlock; // The block number when farming starts.
     uint256 endBlock; // The block number when farming ends.
+    uint256 decayPeriod; // # of blocks after which rewards decay.
   }
 
   bytes32 internal constant STORAGE_SLOT =

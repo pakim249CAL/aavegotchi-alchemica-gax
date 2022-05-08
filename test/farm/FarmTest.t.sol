@@ -4,31 +4,9 @@ import "./TestSetupFarm.t.sol";
 
 contract FarmTest is TestSetupFarm {
   function testInit() public {
-    assertEq(farm.rewardPerBlock(), 1e18);
     assertEq(farm.startBlock(), startBlock);
     assertEq(farm.endBlock(), startBlock);
     assertEq(address(farm.rewardToken()), address(rewardToken));
-  }
-
-  function testFund(uint256 amount) public {
-    vm.assume(amount > 0 && amount <= 1e50);
-
-    rewardToken.mint(address(this), amount);
-    rewardToken.approve(address(farm), amount);
-    assertEq(rewardToken.balanceOf(address(this)), amount);
-
-    //Only owner check
-    vm.prank(address(user1));
-    vm.expectRevert("LibDiamond: Must be contract owner");
-    farm.fund(amount);
-
-    farm.fund(amount);
-    assertEq(rewardToken.balanceOf(address(this)), 0);
-    assertEq(rewardToken.balanceOf(address(farm)), amount);
-    assertEq(
-      farm.endBlock(),
-      startBlock + (amount / farm.rewardPerBlock())
-    );
   }
 
   function testAdd(uint256 numTokens) public {
@@ -80,7 +58,6 @@ contract FarmTest is TestSetupFarm {
 
     rewardToken.mint(address(this), 1e20);
     rewardToken.approve(address(farm), 1e20);
-    farm.fund(1e20);
 
     farm.add(1, lpTokens[0], true);
 
@@ -106,7 +83,6 @@ contract FarmTest is TestSetupFarm {
 
     rewardToken.mint(address(this), 1e20);
     rewardToken.approve(address(farm), 1e20);
-    farm.fund(1e20);
 
     farm.add(1, lpTokens[0], true);
 
@@ -135,7 +111,6 @@ contract FarmTest is TestSetupFarm {
 
     rewardToken.mint(address(this), 1e20);
     rewardToken.approve(address(farm), 1e20);
-    farm.fund(1e20);
 
     vm.roll(startBlock);
 
@@ -168,7 +143,6 @@ contract FarmTest is TestSetupFarm {
 
     rewardToken.mint(address(this), 1e20);
     rewardToken.approve(address(farm), 1e20);
-    farm.fund(1e20);
 
     for (uint256 i = 0; i < numTokens; i++) {
       farm.add(1, lpTokens[i], true);
@@ -211,7 +185,6 @@ contract FarmTest is TestSetupFarm {
 
     rewardToken.mint(address(this), 1e20);
     rewardToken.approve(address(farm), 1e20);
-    farm.fund(1e20);
 
     for (uint256 i = 0; i < numTokens; i++) {
       farm.add(1, lpTokens[i], true);

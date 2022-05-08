@@ -6,11 +6,6 @@ import "../abstract/ReentrancyGuard.sol";
 import "../abstract/Ownable.sol";
 
 contract FarmFacet is Ownable, ReentrancyGuard {
-  // Fund the farm, increase the end block
-  function fund(uint256 _amount) external onlyOwner {
-    LibFarm.fund(_amount);
-  }
-
   // Add a new lp to the pool. Can only be called by the owner.
   // DO NOT add the same LP token more than once. Rewards will be messed up if you do.
   function add(
@@ -115,9 +110,10 @@ contract FarmFacet is Ownable, ReentrancyGuard {
         ? block.number
         : s().endBlock;
       uint256 nrOfBlocks = lastBlock - pool.lastRewardBlock;
-      uint256 erc20Reward = (nrOfBlocks *
-        s().rewardPerBlock *
-        pool.allocPoint) / s().totalAllocPoint;
+      uint256 erc20Reward = (LibFarm.sumRewardPerBlock(
+        lastBlock,
+        nrOfBlocks
+      ) * pool.allocPoint) / s().totalAllocPoint;
       accERC20PerShare =
         ((accERC20PerShare + erc20Reward) * 1e12) /
         lpSupply;
@@ -127,7 +123,11 @@ contract FarmFacet is Ownable, ReentrancyGuard {
   }
 
   // View function for total reward the farm has yet to pay out.
-  function totalPending() external view returns (uint256) {
+  function totalPending()
+    external
+    view
+    returns (uint256 totalPending_)
+  {
     if (block.number <= s().startBlock) {
       return 0;
     }
@@ -135,12 +135,17 @@ contract FarmFacet is Ownable, ReentrancyGuard {
     uint256 lastBlock = block.number < s().endBlock
       ? block.number
       : s().endBlock;
-    return
-      s().rewardPerBlock * (lastBlock - s().startBlock) - s().paidOut;
-  }
 
-  function status() external view returns (uint256) {
-    return s().status;
+    uint256 decayPeriod = s().decayPeriod; // gas savings
+    uint256 numBlocks = lastBlock - s().startBlock;
+    uint256 currentPeriod = numBlocks / decayPeriod;
+    for (uint256 i; i < currentPeriod; i++) {
+      totalPending_ += LibFarm.rewardPerBlock(i) * decayPeriod;
+    }
+    totalPending_ +=
+      LibFarm.rewardPerBlock(currentPeriod) *
+      (numBlocks % decayPeriod) -
+      s().paidOut;
   }
 
   function rewardToken() external view returns (IERC20) {
@@ -151,8 +156,13 @@ contract FarmFacet is Ownable, ReentrancyGuard {
     return s().paidOut;
   }
 
-  function rewardPerBlock() external view returns (uint256) {
-    return s().rewardPerBlock;
+  // Returns the reward per block for the specified year. 0 is the first year
+  function rewardPerBlock(uint256 year)
+    external
+    pure
+    returns (uint256)
+  {
+    return LibFarm.rewardPerBlock(year);
   }
 
   function poolInfo(uint256 _pid)

@@ -140,10 +140,9 @@ contract TestSetupFarm is Test {
   }
 
   function populateFarmCuts() internal {
-    bytes4[] memory farmFunctionSelectors = new bytes4[](24);
+    bytes4[] memory farmFunctionSelectors = new bytes4[](23);
     {
       uint256 index;
-      farmFunctionSelectors[index++] = farmFacet.fund.selector;
       farmFunctionSelectors[index++] = farmFacet.add.selector;
       farmFunctionSelectors[index++] = farmFacet.set.selector;
       farmFunctionSelectors[index++] = farmFacet
@@ -165,7 +164,6 @@ contract TestSetupFarm is Test {
       farmFunctionSelectors[index++] = farmFacet
         .totalPending
         .selector;
-      farmFunctionSelectors[index++] = farmFacet.status.selector;
       farmFunctionSelectors[index++] = farmFacet.rewardToken.selector;
       farmFunctionSelectors[index++] = farmFacet.paidOut.selector;
       farmFunctionSelectors[index++] = farmFacet

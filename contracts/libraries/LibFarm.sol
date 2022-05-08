@@ -8,7 +8,7 @@ import { FarmStorage, PoolInfo, UserInfo } from "./FarmStorage.sol";
 // Farm distributes the ERC20 rewards based on staked LP to each user.
 //
 // Forked from https://github.com/SashimiProject/sashimiswap/blob/master/contracts/MasterChef.sol
-// Modified by Manhattan Finance to work for non-mintable ERC20.
+// Modified for diamonds and decay rate support
 library LibFarm {
   using SafeERC20 for IERC20;
 
@@ -29,23 +29,96 @@ library LibFarm {
   );
   event Harvest(address indexed user, uint256 amount);
 
-  function s() private pure returns (FarmStorage.Layout storage fs) {
-    return FarmStorage.layout();
+  // Predefined set of rewards for 30 years
+  function rewardPerBlock(uint256 period)
+    internal
+    pure
+    returns (uint256)
+  {
+    // assumes 38,000 blocks per year
+    uint256[30] memory _rewardPerBlock = [
+      uint256(7_209_805_335_256 gwei), // cast to force array to be uint256 (compiler issue)
+      6_039_405_905_650 gwei,
+      5_059_002_566_246 gwei,
+      4_237_752_415_572 gwei,
+      3_549_819_416_085 gwei,
+      2_973_561_607_920 gwei,
+      2_490_850_265_800 gwei,
+      2_086_499_580_203 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei,
+      1_747_788_920_901 gwei
+    ];
+    // Rewards should be zero after rewards are exhausted
+    if (period >= _rewardPerBlock.length) {
+      return 0;
+    } else {
+      return _rewardPerBlock[period];
+    }
   }
 
-  // Fund the farm, increase the end block
-  function fund(uint256 _amount) internal {
-    require(
-      block.number < s().endBlock,
-      "fund: too late, the farm is closed"
-    );
+  function sumRewardPerBlock(
+    uint256 lastRewardBlock,
+    uint256 nrOfBlocks
+  ) internal view returns (uint256 totalReward) {
+    uint256 decayPeriod = s().decayPeriod;
 
-    s().rewardToken.safeTransferFrom(
-      address(msg.sender),
-      address(this),
-      _amount
-    );
-    s().endBlock += _amount / s().rewardPerBlock;
+    // Blocks passed from the start block to the last reward block
+    uint256 blocksPassedToLastRewardSinceStart = lastRewardBlock -
+      s().startBlock;
+    // Total amount of blocks left in the current period
+    uint256 blocksLeftInCurrentPeriod = decayPeriod -
+      (blocksPassedToLastRewardSinceStart % decayPeriod);
+    // The period of the last reward block
+    uint256 currentPeriod = blocksPassedToLastRewardSinceStart /
+      decayPeriod;
+
+    // Add min(current period, nrOfBlocks) * rewardPerBlock to total reward
+    totalReward +=
+      rewardPerBlock(currentPeriod) *
+      (
+        nrOfBlocks < blocksLeftInCurrentPeriod
+          ? nrOfBlocks
+          : blocksLeftInCurrentPeriod
+      );
+
+    // This block should be skipped and reward should be returned if the first period is the last one
+    if (nrOfBlocks > blocksLeftInCurrentPeriod) {
+      // We account for rewards being distributed for the first period
+      ++currentPeriod;
+      nrOfBlocks -= blocksLeftInCurrentPeriod;
+      // Add to total rewards for each period that nrOfBlocks fills
+      while (nrOfBlocks >= decayPeriod) {
+        totalReward += rewardPerBlock(currentPeriod) * decayPeriod;
+        nrOfBlocks -= decayPeriod;
+        ++currentPeriod;
+      }
+      // Add the final rewards
+      totalReward += rewardPerBlock(currentPeriod) * nrOfBlocks;
+    }
+  }
+
+  function s() private pure returns (FarmStorage.Layout storage fs) {
+    return FarmStorage.layout();
   }
 
   // Add a new lp to the pool. Can only be called by the owner.
@@ -125,9 +198,10 @@ library LibFarm {
     }
 
     uint256 nrOfBlocks = lastBlock - pool.lastRewardBlock;
-    uint256 erc20Reward = (nrOfBlocks *
-      s().rewardPerBlock *
-      pool.allocPoint) / s().totalAllocPoint;
+    uint256 erc20Reward = (sumRewardPerBlock(
+      pool.lastRewardBlock,
+      nrOfBlocks
+    ) * pool.allocPoint) / s().totalAllocPoint;
 
     pool.accERC20PerShare =
       ((pool.accERC20PerShare + erc20Reward) * 1e12) /
