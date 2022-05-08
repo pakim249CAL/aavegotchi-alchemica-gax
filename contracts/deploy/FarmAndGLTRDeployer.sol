@@ -27,20 +27,14 @@ contract FarmAndGLTRDeployer {
   }
 
   struct FarmInitParams {
-    uint256 rewardPerBlock;
     uint256 startBlock;
-    uint256 endBlock;
     uint256 decayPeriod;
-    uint256 decay;
   }
 
   function deployFarmAndGLTR(
     DeployedAddresses memory deployedAddresses,
     FarmInitParams memory farmInitParams
-  ) public {
-    IDiamondCut.FacetCut[] memory diamondCuts;
-    IDiamondCut.FacetCut[] memory farmCuts;
-
+  ) public returns (address diamond_, address rewardToken_) {
     // Deploy GLTR and farm diamond
     GAXLiquidityTokenReward rewardToken = new GAXLiquidityTokenReward();
     Diamond diamond = new Diamond(
@@ -48,43 +42,39 @@ contract FarmAndGLTRDeployer {
       deployedAddresses.diamondCutFacet
     );
 
-    // Populate the diamond cuts with function selectors and facet addresses
-    diamondCuts = populateDiamondCuts(
-      deployedAddresses.diamondLoupeFacet,
-      deployedAddresses.ownershipFacet
-    );
-    farmCuts = populateFarmCuts(deployedAddresses.farmFacet);
+    diamond_ = address(diamond);
+    rewardToken_ = address(rewardToken);
 
     // Cut diamond with diamond selectors and initialize reentry guard
-    IDiamondCut(address(diamond)).diamondCut(
-      diamondCuts,
+    IDiamondCut(diamond_).diamondCut(
+      populateDiamondCuts(
+        deployedAddresses.diamondLoupeFacet,
+        deployedAddresses.ownershipFacet
+      ),
       deployedAddresses.reentrancyGuardInit,
       abi.encodeWithSelector(ReentrancyGuardInit.init.selector)
     );
 
     // Cut diamond with farm selectors and initialize farm
-    IDiamondCut(address(diamond)).diamondCut(
-      farmCuts,
+    IDiamondCut(diamond_).diamondCut(
+      populateFarmCuts(deployedAddresses.farmFacet),
       deployedAddresses.farmInit,
       abi.encodeWithSelector(
         FarmInit.init.selector,
-        address(rewardToken),
-        farmInitParams.rewardPerBlock,
+        rewardToken_,
         farmInitParams.startBlock,
-        farmInitParams.endBlock,
-        farmInitParams.decayPeriod,
-        farmInitParams.decay
+        farmInitParams.decayPeriod
       )
     );
 
     // Transfer all of the reward tokens to the farm diamond
     rewardToken.transfer(
-      address(diamond),
+      diamond_,
       rewardToken.balanceOf(address(this))
     );
 
     // Transfer ownership of the diamond to the sender
-    OwnershipFacet(address(diamond)).transferOwnership(msg.sender);
+    OwnershipFacet(diamond_).transferOwnership(msg.sender);
   }
 
   function populateDiamondCuts(
@@ -95,6 +85,7 @@ contract FarmAndGLTRDeployer {
     pure
     returns (IDiamondCut.FacetCut[] memory diamondCuts)
   {
+    diamondCuts = new IDiamondCut.FacetCut[](2);
     bytes4[] memory loupeFunctionSelectors = new bytes4[](4);
     {
       uint256 index;
@@ -139,7 +130,8 @@ contract FarmAndGLTRDeployer {
     pure
     returns (IDiamondCut.FacetCut[] memory farmCuts)
   {
-    bytes4[] memory farmFunctionSelectors = new bytes4[](23);
+    farmCuts = new IDiamondCut.FacetCut[](1);
+    bytes4[] memory farmFunctionSelectors = new bytes4[](21);
     {
       uint256 index;
       farmFunctionSelectors[index++] = FarmFacet.add.selector;
@@ -175,7 +167,6 @@ contract FarmAndGLTRDeployer {
         .totalAllocPoint
         .selector;
       farmFunctionSelectors[index++] = FarmFacet.startBlock.selector;
-      farmFunctionSelectors[index++] = FarmFacet.endBlock.selector;
     }
     farmCuts[0] = IDiamondCut.FacetCut(
       farmFacet,

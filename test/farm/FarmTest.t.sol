@@ -5,7 +5,6 @@ import "./TestSetupFarm.t.sol";
 contract FarmTest is TestSetupFarm {
   function testInit() public {
     assertEq(farm.startBlock(), startBlock);
-    assertEq(farm.endBlock(), startBlock);
     assertEq(address(farm.rewardToken()), address(rewardToken));
   }
 
@@ -56,12 +55,7 @@ contract FarmTest is TestSetupFarm {
   function testDeposit(uint256 amount) public {
     vm.assume(amount > 0 && amount <= 1e50);
 
-    rewardToken.mint(address(this), 1e20);
-    rewardToken.approve(address(farm), 1e20);
-
     farm.add(1, lpTokens[0], true);
-
-    vm.roll(startBlock + 10);
 
     lpTokens[0].mint(address(user1), amount);
     vm.prank(address(user1));
@@ -81,12 +75,7 @@ contract FarmTest is TestSetupFarm {
   function testWithdraw(uint256 amount) public {
     vm.assume(amount > 0 && amount <= 1e50);
 
-    rewardToken.mint(address(this), 1e20);
-    rewardToken.approve(address(farm), 1e20);
-
     farm.add(1, lpTokens[0], true);
-
-    vm.roll(startBlock + 10);
 
     lpTokens[0].mint(address(user1), amount);
     vm.prank(address(user1));
@@ -108,9 +97,6 @@ contract FarmTest is TestSetupFarm {
   function testPending(uint256 amount, uint8 numTokens) public {
     vm.assume(amount > 0 && amount <= 1e50);
     vm.assume(numTokens > 0 && numTokens <= 20);
-
-    rewardToken.mint(address(this), 1e20);
-    rewardToken.approve(address(farm), 1e20);
 
     vm.roll(startBlock);
 
@@ -182,9 +168,6 @@ contract FarmTest is TestSetupFarm {
   {
     vm.assume(amount > 0 && amount <= 1e50);
     vm.assume(numTokens > 0 && numTokens <= 20);
-
-    rewardToken.mint(address(this), 1e20);
-    rewardToken.approve(address(farm), 1e20);
 
     for (uint256 i = 0; i < numTokens; i++) {
       farm.add(1, lpTokens[i], true);

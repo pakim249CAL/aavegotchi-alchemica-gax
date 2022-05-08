@@ -106,12 +106,9 @@ contract FarmFacet is Ownable, ReentrancyGuard {
     uint256 lpSupply = pool.lpToken.balanceOf(address(this));
 
     if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-      uint256 lastBlock = block.number < s().endBlock
-        ? block.number
-        : s().endBlock;
-      uint256 nrOfBlocks = lastBlock - pool.lastRewardBlock;
+      uint256 nrOfBlocks = block.number - pool.lastRewardBlock;
       uint256 erc20Reward = (LibFarm.sumRewardPerBlock(
-        lastBlock,
+        pool.lastRewardBlock,
         nrOfBlocks
       ) * pool.allocPoint) / s().totalAllocPoint;
       accERC20PerShare =
@@ -128,23 +125,16 @@ contract FarmFacet is Ownable, ReentrancyGuard {
     view
     returns (uint256 totalPending_)
   {
-    if (block.number <= s().startBlock) {
+    uint256 _startBlock = s().startBlock;
+    if (block.number <= _startBlock) {
       return 0;
     }
 
-    uint256 lastBlock = block.number < s().endBlock
-      ? block.number
-      : s().endBlock;
-
-    uint256 decayPeriod = s().decayPeriod; // gas savings
-    uint256 numBlocks = lastBlock - s().startBlock;
-    uint256 currentPeriod = numBlocks / decayPeriod;
-    for (uint256 i; i < currentPeriod; i++) {
-      totalPending_ += LibFarm.rewardPerBlock(i) * decayPeriod;
-    }
-    totalPending_ +=
-      LibFarm.rewardPerBlock(currentPeriod) *
-      (numBlocks % decayPeriod) -
+    totalPending_ =
+      LibFarm.sumRewardPerBlock(
+        _startBlock,
+        block.number - _startBlock
+      ) -
       s().paidOut;
   }
 
@@ -191,9 +181,5 @@ contract FarmFacet is Ownable, ReentrancyGuard {
 
   function startBlock() external view returns (uint256) {
     return s().startBlock;
-  }
-
-  function endBlock() external view returns (uint256) {
-    return s().endBlock;
   }
 }

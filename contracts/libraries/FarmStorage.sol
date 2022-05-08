@@ -26,7 +26,6 @@ library FarmStorage {
     mapping(uint256 => mapping(address => UserInfo)) userInfo; // Info of each user that stakes LP tokens.
     uint256 totalAllocPoint; // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 startBlock; // The block number when farming starts.
-    uint256 endBlock; // The block number when farming ends.
     uint256 decayPeriod; // # of blocks after which rewards decay.
   }
 

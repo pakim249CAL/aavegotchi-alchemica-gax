@@ -35,7 +35,7 @@ library LibFarm {
     pure
     returns (uint256)
   {
-    // assumes 38,000 blocks per year
+    // assumes 13,870,000 blocks per year to distribute a total of 1 trillion GLTR
     uint256[30] memory _rewardPerBlock = [
       uint256(7_209_805_335_256 gwei), // cast to force array to be uint256 (compiler issue)
       6_039_405_905_650 gwei,
@@ -78,7 +78,7 @@ library LibFarm {
 
   /// @notice Sums up the rewards for a specified number of blocks from the last reward block
   /// @param lastRewardBlock The block number of the last reward block to calculate from
-  /// @param numBlocks The number of blocks to calculate rewards for
+  /// @param nrOfBlocks The number of blocks to calculate rewards for
   function sumRewardPerBlock(
     uint256 lastRewardBlock,
     uint256 nrOfBlocks
@@ -187,20 +187,17 @@ library LibFarm {
   // Update reward variables of the given pool to be up-to-date.
   function updatePool(uint256 _pid) internal {
     PoolInfo storage pool = s().poolInfo[_pid];
-    uint256 lastBlock = block.number < s().endBlock
-      ? block.number
-      : s().endBlock;
 
-    if (lastBlock <= pool.lastRewardBlock) {
+    if (block.number <= pool.lastRewardBlock) {
       return;
     }
     uint256 lpSupply = pool.lpToken.balanceOf(address(this));
     if (lpSupply == 0) {
-      pool.lastRewardBlock = lastBlock;
+      pool.lastRewardBlock = block.number;
       return;
     }
 
-    uint256 nrOfBlocks = lastBlock - pool.lastRewardBlock;
+    uint256 nrOfBlocks = block.number - pool.lastRewardBlock;
     uint256 erc20Reward = (sumRewardPerBlock(
       pool.lastRewardBlock,
       nrOfBlocks

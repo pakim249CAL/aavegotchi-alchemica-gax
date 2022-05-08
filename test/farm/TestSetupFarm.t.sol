@@ -11,6 +11,7 @@ import "@contracts/diamond/interfaces/IDiamondLoupe.sol";
 
 import "@contracts/diamond/Diamond.sol";
 
+import "@contracts/deploy/FarmAndGLTRDeployer.sol";
 import "@contracts/facets/FarmFacet.sol";
 import "@contracts/init/FarmInit.sol";
 import "@contracts/init/ReentrancyGuardInit.sol";
@@ -24,15 +25,14 @@ contract TestSetupFarm is Test {
   DiamondCutFacet diamondCutFacet;
   DiamondLoupeFacet diamondLoupeFacet;
   OwnershipFacet ownershipFacet;
-
   FarmFacet farmFacet;
-  FarmFacet farm;
 
-  IDiamondCut.FacetCut[] diamondCuts;
-  IDiamondCut.FacetCut[] farmCuts;
+  FarmFacet farm;
 
   FarmInit farmInit;
   ReentrancyGuardInit reentrancyGuardInit;
+
+  FarmAndGLTRDeployer farmAndGLTRDeployer;
 
   Token[] lpTokens;
   Token rewardToken;
@@ -43,148 +43,46 @@ contract TestSetupFarm is Test {
   uint256 startBlock;
 
   function setUp() public {
+    startBlock = block.number + 100;
     deployAll();
-    populateAndCut();
     populateUsers();
-    farm = FarmFacet(address(diamond));
   }
 
   function deployAll() internal {
-    deployDiamond();
-    deployFarm();
-    deployTokens(20);
-  }
-
-  function populateAndCut() internal {
-    populateDiamondCuts();
-    populateFarmCuts();
-    IDiamondCut(address(diamond)).diamondCut(
-      diamondCuts,
-      address(reentrancyGuardInit),
-      abi.encodeWithSelector(reentrancyGuardInit.init.selector)
-    );
-    startBlock = block.number + 100;
-    IDiamondCut(address(diamond)).diamondCut(
-      farmCuts,
-      address(farmInit),
-      abi.encodeWithSelector(
-        farmInit.init.selector,
-        address(rewardToken),
-        1e18,
-        startBlock
-      )
-    );
-  }
-
-  function deployDiamond() internal {
     diamondCutFacet = new DiamondCutFacet();
     diamondLoupeFacet = new DiamondLoupeFacet();
     ownershipFacet = new OwnershipFacet();
-    diamond = new Diamond(address(this), address(diamondCutFacet));
-  }
-
-  function deployFarm() internal {
-    reentrancyGuardInit = new ReentrancyGuardInit();
-    farmInit = new FarmInit();
     farmFacet = new FarmFacet();
+    farmInit = new FarmInit();
+    reentrancyGuardInit = new ReentrancyGuardInit();
+
+    farmAndGLTRDeployer = new FarmAndGLTRDeployer();
+    address diamond_;
+    address rewardToken_;
+    (diamond_, rewardToken_) = farmAndGLTRDeployer.deployFarmAndGLTR(
+      FarmAndGLTRDeployer.DeployedAddresses({
+        diamondCutFacet: address(diamondCutFacet),
+        diamondLoupeFacet: address(diamondLoupeFacet),
+        ownershipFacet: address(ownershipFacet),
+        farmFacet: address(farmFacet),
+        farmInit: address(farmInit),
+        reentrancyGuardInit: address(reentrancyGuardInit)
+      }),
+      FarmAndGLTRDeployer.FarmInitParams({
+        startBlock: startBlock,
+        decayPeriod: 38000 * 365
+      })
+    );
+    diamond = Diamond(payable(diamond_));
+    rewardToken = Token(rewardToken_);
+    farm = FarmFacet(diamond_);
+    deployTokens(20);
   }
 
-  function deployTokens(uint256 amount) internal {
-    for (uint256 i = 0; i < amount; i++) {
+  function deployTokens(uint256 _numTokens) internal {
+    for (uint256 i = 0; i < _numTokens; i++) {
       lpTokens.push(new Token());
     }
-    rewardToken = new Token();
-  }
-
-  function populateDiamondCuts() internal {
-    bytes4[] memory loupeFunctionSelectors = new bytes4[](4);
-    {
-      uint256 index;
-      loupeFunctionSelectors[index++] = diamondLoupeFacet
-        .facets
-        .selector;
-      loupeFunctionSelectors[index++] = diamondLoupeFacet
-        .facetFunctionSelectors
-        .selector;
-      loupeFunctionSelectors[index++] = diamondLoupeFacet
-        .facetAddresses
-        .selector;
-      loupeFunctionSelectors[index++] = diamondLoupeFacet
-        .facetAddress
-        .selector;
-    }
-    diamondCuts.push(
-      IDiamondCut.FacetCut(
-        address(diamondLoupeFacet),
-        IDiamondCut.FacetCutAction.Add,
-        loupeFunctionSelectors
-      )
-    );
-    bytes4[] memory ownershipFunctionSelectors = new bytes4[](2);
-    {
-      uint256 index;
-      ownershipFunctionSelectors[index++] = ownershipFacet
-        .owner
-        .selector;
-      ownershipFunctionSelectors[index++] = ownershipFacet
-        .transferOwnership
-        .selector;
-    }
-    diamondCuts.push(
-      IDiamondCut.FacetCut(
-        address(ownershipFacet),
-        IDiamondCut.FacetCutAction.Add,
-        ownershipFunctionSelectors
-      )
-    );
-  }
-
-  function populateFarmCuts() internal {
-    bytes4[] memory farmFunctionSelectors = new bytes4[](23);
-    {
-      uint256 index;
-      farmFunctionSelectors[index++] = farmFacet.add.selector;
-      farmFunctionSelectors[index++] = farmFacet.set.selector;
-      farmFunctionSelectors[index++] = farmFacet
-        .massUpdatePools
-        .selector;
-      farmFunctionSelectors[index++] = farmFacet.updatePool.selector;
-      farmFunctionSelectors[index++] = farmFacet.deposit.selector;
-      farmFunctionSelectors[index++] = farmFacet.withdraw.selector;
-      farmFunctionSelectors[index++] = farmFacet.harvest.selector;
-      farmFunctionSelectors[index++] = farmFacet
-        .batchHarvest
-        .selector;
-      farmFunctionSelectors[index++] = farmFacet
-        .emergencyWithdraw
-        .selector;
-      farmFunctionSelectors[index++] = farmFacet.poolLength.selector;
-      farmFunctionSelectors[index++] = farmFacet.deposited.selector;
-      farmFunctionSelectors[index++] = farmFacet.pending.selector;
-      farmFunctionSelectors[index++] = farmFacet
-        .totalPending
-        .selector;
-      farmFunctionSelectors[index++] = farmFacet.rewardToken.selector;
-      farmFunctionSelectors[index++] = farmFacet.paidOut.selector;
-      farmFunctionSelectors[index++] = farmFacet
-        .rewardPerBlock
-        .selector;
-      farmFunctionSelectors[index++] = farmFacet.poolInfo.selector;
-      farmFunctionSelectors[index++] = farmFacet.poolTokens.selector;
-      farmFunctionSelectors[index++] = farmFacet.userInfo.selector;
-      farmFunctionSelectors[index++] = farmFacet
-        .totalAllocPoint
-        .selector;
-      farmFunctionSelectors[index++] = farmFacet.startBlock.selector;
-      farmFunctionSelectors[index++] = farmFacet.endBlock.selector;
-    }
-    farmCuts.push(
-      IDiamondCut.FacetCut(
-        address(farmFacet),
-        IDiamondCut.FacetCutAction.Add,
-        farmFunctionSelectors
-      )
-    );
   }
 
   function populateUsers() internal {
