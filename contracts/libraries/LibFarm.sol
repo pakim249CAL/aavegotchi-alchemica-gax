@@ -29,7 +29,7 @@ library LibFarm {
   );
   event Harvest(address indexed user, uint256 amount);
 
-  // Predefined set of rewards for 30 years
+  // Helper getter function for a predefined set of rewards for 30 years
   function rewardPerBlock(uint256 period)
     internal
     pure
@@ -76,6 +76,9 @@ library LibFarm {
     }
   }
 
+  /// @notice Sums up the rewards for a specified number of blocks from the last reward block
+  /// @param lastRewardBlock The block number of the last reward block to calculate from
+  /// @param numBlocks The number of blocks to calculate rewards for
   function sumRewardPerBlock(
     uint256 lastRewardBlock,
     uint256 nrOfBlocks
