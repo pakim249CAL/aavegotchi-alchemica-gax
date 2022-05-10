@@ -11,13 +11,17 @@ import "@typechain/hardhat";
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
-task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
+task(
+  "accounts",
+  "Prints the list of accounts",
+  async (taskArgs, hre) => {
+    const accounts = await hre.ethers.getSigners();
 
-  for (const account of accounts) {
-    console.log(account.address);
+    for (const account of accounts) {
+      console.log(account.address);
+    }
   }
-});
+);
 
 const ALCHEMY_KEY = process.env.ALCHEMY_KEY;
 
@@ -47,7 +51,10 @@ export default {
       },
       {
         version: "0.8.11",
-      }
+      },
+      {
+        version: "0.8.13",
+      },
     ],
     settings: {
       optimizer: {
@@ -65,34 +72,50 @@ export default {
       forking: {
         url: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
         blockNumber: 23641001,
-      }
+        accounts:
+          process.env.PRIVATE_KEY !== undefined
+            ? [process.env.PRIVATE_KEY]
+            : [],
+      },
     },
     local: {
       url: process.env.LOCAL_URL || "http://127.0.0.1:8545",
     },
     mainnet: {
       url: `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`,
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts:
+        process.env.PRIVATE_KEY !== undefined
+          ? [process.env.PRIVATE_KEY]
+          : [],
       maxFeePerGas: 1000 * 1000 * 1000 * 150,
       maxPriorityFeePerGas: 1000 * 1000 * 1000,
     },
     kovan: {
       url: `https://eth-kovan.alchemyapi.io/v2/${ALCHEMY_KEY}`,
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts:
+        process.env.PRIVATE_KEY !== undefined
+          ? [process.env.PRIVATE_KEY]
+          : [],
       maxFeePerGas: 1000 * 1000 * 1000 * 50,
       maxPriorityFeePerGas: 1000 * 1000 * 1000,
     },
     matic: {
       url: `https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`,
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      maxFeePerGas: 1000 * 1000 * 1000 * 50,
-      maxPriorityFeePerGas: 1000 * 1000 * 1000,
+      accounts:
+        process.env.PRIVATE_KEY !== undefined
+          ? [process.env.PRIVATE_KEY]
+          : [],
+      maxFeePerGas: 1000 * 1000 * 1000 * 100,
+      maxPriorityFeePerGas: 1000 * 1000 * 1000 * 50,
     },
     mumbai: {
-      url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_KEY}`,
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      maxFeePerGas: 1000 * 1000 * 1000 * 2,
-      maxPriorityFeePerGas: 1000 * 1000 * 1000,
+      url: process.env.MUMBAI_URL,
+      accounts:
+        process.env.PRIVATE_KEY !== undefined
+          ? [process.env.PRIVATE_KEY]
+          : [],
+      maxFeePerGas: 1000 * 1000 * 1000 * 50,
+      maxPriorityFeePerGas: 1000 * 1000 * 1000 * 50,
       gas: 20000000,
     },
   },
@@ -104,13 +127,13 @@ export default {
     token: "ETH",
   },
   etherscan: {
-    apiKey: process.env.POLYGONSCAN_API_KEY/*
+    apiKey: process.env.POLYGONSCAN_API_KEY /*
       {
         mainnet: process.env.ETHERSCAN_API_KEY || "PLACEHOLDER",
         matic: process.env.POLYGONSCAN_API_KEY || "PLACEHOLDER",
         mumbai: process.env.POLYGONSCAN_API_KEY || "PLACEHOLDER",
         kovan: process.env.ETHERSCAN_API_KEY || "PLACEHOLDER",
-      }*/
+      }*/,
   },
   abiExporter: {
     path: "./build",

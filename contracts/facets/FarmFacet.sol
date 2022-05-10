@@ -138,6 +138,18 @@ contract FarmFacet is Ownable, ReentrancyGuard {
       s().paidOut;
   }
 
+  function fullUserInfo(address _user)
+    external
+    view
+    returns (UserInfo[] memory)
+  {
+    UserInfo[] memory userInfo_ = new UserInfo[](s().poolInfo.length);
+    for (uint256 i = 0; i < s().poolInfo.length; i++) {
+      userInfo_[i] = s().userInfo[i][_user];
+    }
+    return userInfo_;
+  }
+
   function rewardToken() external view returns (IERC20) {
     return s().rewardToken;
   }

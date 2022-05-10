@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "@contracts/token/GAXLiquidityTokenReward.sol";
-import "@contracts/diamond/facets/DiamondCutFacet.sol";
-import "@contracts/diamond/facets/DiamondLoupeFacet.sol";
-import "@contracts/diamond/facets/OwnershipFacet.sol";
+import "../token/GAXLiquidityTokenReward.sol";
+import "../diamond/facets/DiamondCutFacet.sol";
+import "../diamond/facets/DiamondLoupeFacet.sol";
+import "../diamond/facets/OwnershipFacet.sol";
 
-import "@contracts/diamond/interfaces/IDiamondCut.sol";
-import "@contracts/diamond/interfaces/IDiamondLoupe.sol";
+import "../diamond/interfaces/IDiamondCut.sol";
+import "../diamond/interfaces/IDiamondLoupe.sol";
 
-import "@contracts/diamond/Diamond.sol";
+import "../diamond/Diamond.sol";
 
-import "@contracts/facets/FarmFacet.sol";
-import "@contracts/init/FarmInit.sol";
-import "@contracts/init/ReentrancyGuardInit.sol";
+import "../facets/FarmFacet.sol";
+import "../init/FarmInit.sol";
+import "../init/ReentrancyGuardInit.sol";
 
 /** Helper farm diamond deployment contract. Facet and init contracts must already be deployed because of the contract size limit. */
 contract FarmAndGLTRDeployer {
