@@ -131,7 +131,7 @@ contract FarmAndGLTRDeployer {
     returns (IDiamondCut.FacetCut[] memory farmCuts)
   {
     farmCuts = new IDiamondCut.FacetCut[](1);
-    bytes4[] memory farmFunctionSelectors = new bytes4[](22);
+    bytes4[] memory farmFunctionSelectors = new bytes4[](23);
     {
       uint256 index;
       farmFunctionSelectors[index++] = FarmFacet.add.selector;
@@ -168,6 +168,7 @@ contract FarmAndGLTRDeployer {
         .selector;
       farmFunctionSelectors[index++] = FarmFacet.startBlock.selector;
       farmFunctionSelectors[index++] = FarmFacet.decayPeriod.selector;
+      farmFunctionSelectors[index++] = FarmFacet.allUserInfo.selector;
     }
     farmCuts[0] = IDiamondCut.FacetCut(
       farmFacet,

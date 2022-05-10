@@ -164,11 +164,11 @@ contract FarmTest is TestSetupFarm {
 
   function testHarvest(
     uint256 amount,
-    uint8 period,
+    uint256 period,
     uint8 numTokens
   ) public {
     vm.assume(amount > 1 && amount <= 1e50);
-    vm.assume(period > 0 && period < 200);
+    vm.assume(period > 0 && period < 365 * 38000 * 40); // 40 years of blocks
     vm.assume(numTokens > 0 && numTokens <= 5);
 
     for (uint256 i = 0; i < numTokens; i++) {
@@ -201,6 +201,7 @@ contract FarmTest is TestSetupFarm {
         farm.userInfo(i, address(user1)).rewardDebt,
         "2"
       );
+      assertEq(farm.pending(i, address(user1)), 0, "3");
     }
   }
 

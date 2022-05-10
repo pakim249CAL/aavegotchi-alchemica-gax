@@ -96,7 +96,7 @@ contract FarmFacet is Ownable, ReentrancyGuard {
 
   // View function to see pending ERC20s for a user.
   function pending(uint256 _pid, address _user)
-    external
+    public
     view
     returns (uint256)
   {
@@ -138,14 +138,28 @@ contract FarmFacet is Ownable, ReentrancyGuard {
       s().paidOut;
   }
 
-  function fullUserInfo(address _user)
+  struct UserInfoOutput {
+    IERC20 lpToken; // LP Token of the pool
+    uint256 allocPoint;
+    uint256 amount; // Amount user has deposited
+    uint256 pending; // Amount of reward pending for this lp token pool
+  }
+
+  function allUserInfo(address _user)
     external
     view
-    returns (UserInfo[] memory)
+    returns (UserInfoOutput[] memory)
   {
-    UserInfo[] memory userInfo_ = new UserInfo[](s().poolInfo.length);
+    UserInfoOutput[] memory userInfo_ = new UserInfoOutput[](
+      s().poolInfo.length
+    );
     for (uint256 i = 0; i < s().poolInfo.length; i++) {
-      userInfo_[i] = s().userInfo[i][_user];
+      userInfo_[i] = UserInfoOutput({
+        lpToken: s().poolInfo[i].lpToken,
+        allocPoint: s().poolInfo[i].allocPoint,
+        amount: s().userInfo[i][_user].amount,
+        pending: pending(i, _user)
+      });
     }
     return userInfo_;
   }
