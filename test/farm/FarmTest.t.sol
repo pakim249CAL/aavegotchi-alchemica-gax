@@ -228,4 +228,61 @@ contract FarmTest is TestSetupFarm {
       assertEq(lpTokens[i].balanceOf(address(user1)), amount);
     }
   }
+
+  function testAmounts() public {
+    uint256[37] memory yearlyExpectedAmounts = [
+      uint256(100_000_000_000 ether),
+      83_766_559_911 ether,
+      70_168_365_594 ether,
+      58_777_626_004 ether,
+      49_235_995_301 ether,
+      41_243_299_502 ether,
+      34_548_093_187 ether,
+      28_939_749_177 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      24_241_832_333 ether,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ];
+    uint256 sumExpectedAmounts;
+    for (uint256 i; i < yearlyExpectedAmounts.length; i++) {
+      vm.roll(startBlock + (i + 1) * 365 * 38000);
+      sumExpectedAmounts += yearlyExpectedAmounts[i];
+      assertGe(
+        farm.totalPending(),
+        (sumExpectedAmounts * 99) / 100,
+        "1"
+      );
+      assertLe(
+        farm.totalPending(),
+        (sumExpectedAmounts * 101) / 100,
+        "2"
+      );
+    }
+  }
 }
