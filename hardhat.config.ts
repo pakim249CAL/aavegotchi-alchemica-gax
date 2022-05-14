@@ -58,8 +58,8 @@ export default {
     ],
     settings: {
       optimizer: {
-        enabled: true,
-        runs: 1,
+        enabled: false,
+        runs: 200,
       },
     },
   },
@@ -105,8 +105,7 @@ export default {
         process.env.PRIVATE_KEY !== undefined
           ? [process.env.PRIVATE_KEY]
           : [],
-      maxFeePerGas: 1000 * 1000 * 1000 * 100,
-      maxPriorityFeePerGas: 1000 * 1000 * 1000 * 50,
+      gasPrice: 1000 * 1000 * 1000 * 100,
     },
     mumbai: {
       url: process.env.MUMBAI_URL,
@@ -127,13 +126,7 @@ export default {
     token: "ETH",
   },
   etherscan: {
-    apiKey: process.env.POLYGONSCAN_API_KEY /*
-      {
-        mainnet: process.env.ETHERSCAN_API_KEY || "PLACEHOLDER",
-        matic: process.env.POLYGONSCAN_API_KEY || "PLACEHOLDER",
-        mumbai: process.env.POLYGONSCAN_API_KEY || "PLACEHOLDER",
-        kovan: process.env.ETHERSCAN_API_KEY || "PLACEHOLDER",
-      }*/,
+    apiKey: process.env.POLYGONSCAN_API_KEY,
   },
   abiExporter: {
     path: "./build",

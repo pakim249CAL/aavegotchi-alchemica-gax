@@ -18,6 +18,8 @@ import "../init/ReentrancyGuardInit.sol";
 /** Helper farm diamond deployment contract. Facet and init contracts must already be deployed because of the contract size limit. */
 contract FarmAndGLTRDeployer {
   struct DeployedAddresses {
+    address diamond;
+    address rewardToken;
     address diamondCutFacet;
     address diamondLoupeFacet;
     address ownershipFacet;
@@ -34,19 +36,9 @@ contract FarmAndGLTRDeployer {
   function deployFarmAndGLTR(
     DeployedAddresses memory deployedAddresses,
     FarmInitParams memory farmInitParams
-  ) public returns (address diamond_, address rewardToken_) {
-    // Deploy GLTR and farm diamond
-    GAXLiquidityTokenReward rewardToken = new GAXLiquidityTokenReward();
-    Diamond diamond = new Diamond(
-      address(this),
-      deployedAddresses.diamondCutFacet
-    );
-
-    diamond_ = address(diamond);
-    rewardToken_ = address(rewardToken);
-
+  ) external {
     // Cut diamond with diamond selectors and initialize reentry guard
-    IDiamondCut(diamond_).diamondCut(
+    IDiamondCut(deployedAddresses.diamond).diamondCut(
       populateDiamondCuts(
         deployedAddresses.diamondLoupeFacet,
         deployedAddresses.ownershipFacet
@@ -56,25 +48,21 @@ contract FarmAndGLTRDeployer {
     );
 
     // Cut diamond with farm selectors and initialize farm
-    IDiamondCut(diamond_).diamondCut(
+    IDiamondCut(deployedAddresses.diamond).diamondCut(
       populateFarmCuts(deployedAddresses.farmFacet),
       deployedAddresses.farmInit,
       abi.encodeWithSelector(
         FarmInit.init.selector,
-        rewardToken_,
+        deployedAddresses.rewardToken,
         farmInitParams.startBlock,
         farmInitParams.decayPeriod
       )
     );
 
-    // Transfer all of the reward tokens to the farm diamond
-    rewardToken.transfer(
-      diamond_,
-      rewardToken.balanceOf(address(this))
-    );
-
     // Transfer ownership of the diamond to the sender
-    OwnershipFacet(diamond_).transferOwnership(msg.sender);
+    OwnershipFacet(deployedAddresses.diamond).transferOwnership(
+      msg.sender
+    );
   }
 
   function populateDiamondCuts(

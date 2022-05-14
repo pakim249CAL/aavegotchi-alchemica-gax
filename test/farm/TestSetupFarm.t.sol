@@ -15,6 +15,7 @@ import "@contracts/deploy/FarmAndGLTRDeployer.sol";
 import "@contracts/facets/FarmFacet.sol";
 import "@contracts/init/FarmInit.sol";
 import "@contracts/init/ReentrancyGuardInit.sol";
+import "@contracts/token/GAXLiquidityTokenReward.sol";
 
 import "@contracts/test/Token.sol";
 
@@ -35,7 +36,7 @@ contract TestSetupFarm is Test {
   FarmAndGLTRDeployer farmAndGLTRDeployer;
 
   Token[] lpTokens;
-  Token rewardToken;
+  GAXLiquidityTokenReward rewardToken;
 
   FarmUser user1;
   FarmUser user2;
@@ -55,12 +56,21 @@ contract TestSetupFarm is Test {
     farmFacet = new FarmFacet();
     farmInit = new FarmInit();
     reentrancyGuardInit = new ReentrancyGuardInit();
-
+    rewardToken = new GAXLiquidityTokenReward();
     farmAndGLTRDeployer = new FarmAndGLTRDeployer();
-    address diamond_;
-    address rewardToken_;
-    (diamond_, rewardToken_) = farmAndGLTRDeployer.deployFarmAndGLTR(
+
+    diamond = new Diamond(
+      address(farmAndGLTRDeployer),
+      address(diamondCutFacet)
+    );
+    rewardToken.transfer(
+      address(diamond),
+      rewardToken.balanceOf(address(this))
+    );
+    farmAndGLTRDeployer.deployFarmAndGLTR(
       FarmAndGLTRDeployer.DeployedAddresses({
+        diamond: address(diamond),
+        rewardToken: address(rewardToken),
         diamondCutFacet: address(diamondCutFacet),
         diamondLoupeFacet: address(diamondLoupeFacet),
         ownershipFacet: address(ownershipFacet),
@@ -73,9 +83,7 @@ contract TestSetupFarm is Test {
         decayPeriod: 38000 * 365
       })
     );
-    diamond = Diamond(payable(diamond_));
-    rewardToken = Token(rewardToken_);
-    farm = FarmFacet(diamond_);
+    farm = FarmFacet(address(diamond));
     deployTokens(20);
   }
 
