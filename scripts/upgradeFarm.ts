@@ -9,8 +9,9 @@ import {
 async function main() {
   const diamondCutFacet = hre.ethers.getContractAt(
     "DiamondCutFacet",
-    "0x00"
+    "0xB77225AD50bF0Ea5c9a51Dcf17D0D503Aca44DAD"
   );
+  await diamondCutFacet.diamondCut();
 }
 
 main()
