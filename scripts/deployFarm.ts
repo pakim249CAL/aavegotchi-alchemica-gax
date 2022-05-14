@@ -10,8 +10,8 @@ import { sleep, address } from "../helpers/utils";
 
 async function main() {
   const credentials = {
-    apiKey: process.env.DEFENDER_API_KEY_MUMBAI,
-    apiSecret: process.env.DEFENDER_API_SECRET_MUMBAI,
+    apiKey: process.env.DEFENDER_API_KEY,
+    apiSecret: process.env.DEFENDER_API_SECRET,
   };
   const provider = new DefenderRelayProvider(credentials);
   const owner = new DefenderRelaySigner(credentials, provider, {

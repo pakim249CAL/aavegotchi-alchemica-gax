@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
 contract GAXLiquidityTokenReward is ERC20Permit {
   constructor()
-    ERC20("GAX Liquidity Token Reward", "GLTR")
-    ERC20Permit("GAX Liquidity Token Reward")
+    ERC20("FAKE GAX Liquidity Token Reward", "FGLTR")
+    ERC20Permit("FAKE GAX Liquidity Token Reward")
   {
     _mint(msg.sender, 1e12 * 1e18); // 1 trillion
   }

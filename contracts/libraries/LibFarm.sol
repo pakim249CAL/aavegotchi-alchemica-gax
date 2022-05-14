@@ -222,7 +222,7 @@ library LibFarm {
         address(this),
         _amount
       );
-      user.amount = user.amount + _amount;
+      user.amount += _amount;
     }
     emit Deposit(msg.sender, _pid, _amount);
   }
@@ -263,10 +263,12 @@ library LibFarm {
 
     if (user.amount > 0) {
       uint256 pendingAmount = userReward - user.rewardDebt;
-      s().rewardToken.transfer(_to, pendingAmount);
       s().paidOut += pendingAmount;
+      user.rewardDebt = userReward;
+      s().rewardToken.transfer(_to, pendingAmount);
       emit Harvest(_to, pendingAmount);
+    } else {
+      user.rewardDebt = userReward;
     }
-    user.rewardDebt = userReward;
   }
 }

@@ -115,8 +115,9 @@ contract FarmFacet is Ownable, ReentrancyGuard {
         ((accERC20PerShare + erc20Reward) * 1e12) /
         lpSupply;
     }
-
-    return (user.amount * accERC20PerShare) / 1e12 - user.rewardDebt;
+    uint256 userReward = (user.amount * accERC20PerShare) / 1e12;
+    if (userReward <= user.rewardDebt) return 0;
+    else return userReward - user.rewardDebt;
   }
 
   // View function for total reward the farm has yet to pay out.
@@ -181,6 +182,14 @@ contract FarmFacet is Ownable, ReentrancyGuard {
     return LibFarm.rewardPerBlock(year);
   }
 
+  function currentRewardPerBlock() external view returns (uint256) {
+    if (block.number < s().startBlock) return 0;
+    return
+      LibFarm.rewardPerBlock(
+        (block.number - s().startBlock) / s().decayPeriod
+      );
+  }
+
   function poolInfo(uint256 _pid)
     external
     view
@@ -191,6 +200,10 @@ contract FarmFacet is Ownable, ReentrancyGuard {
 
   function poolTokens(address _token) external view returns (bool) {
     return s().poolTokens[_token];
+  }
+
+  function poolBalance(uint256 _pid) external view returns (uint256) {
+    return s().poolInfo[_pid].lpToken.balanceOf(address(this));
   }
 
   function userInfo(uint256 _pid, address _user)
