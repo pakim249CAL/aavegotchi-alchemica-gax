@@ -203,9 +203,7 @@ library LibFarm {
       nrOfBlocks
     ) * pool.allocPoint) / s().totalAllocPoint;
 
-    pool.accERC20PerShare =
-      ((pool.accERC20PerShare + erc20Reward) * 1e12) /
-      lpSupply;
+    pool.accERC20PerShare += (erc20Reward * 1e12) / lpSupply;
     pool.lastRewardBlock = block.number;
   }
 

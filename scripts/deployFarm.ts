@@ -119,6 +119,10 @@ async function main() {
     "OwnershipFacet",
     diamond.address
   );
+  tx = await ownershipFacet
+    .connect(owner)
+    .transferOwnership("0x8FEebfA4aC7AF314d90a0c17C3F91C800cFdE44B"); // TODO: Change this to whoever we want to transfer ownership of contract to
+  await tx.wait();
   console.log("Owner: " + (await ownershipFacet.owner()));
 }
 

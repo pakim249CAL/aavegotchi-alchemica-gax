@@ -5,8 +5,6 @@ import "../libraries/LibFarm.sol";
 import "../abstract/ReentrancyGuard.sol";
 import "../abstract/Ownable.sol";
 
-import "hardhat/console.sol";
-
 contract FarmFacet is Ownable, ReentrancyGuard {
   // Add a new lp to the pool. Can only be called by the owner.
   // DO NOT add the same LP token more than once. Rewards will be messed up if you do.
