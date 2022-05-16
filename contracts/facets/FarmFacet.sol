@@ -111,9 +111,7 @@ contract FarmFacet is Ownable, ReentrancyGuard {
         pool.lastRewardBlock,
         nrOfBlocks
       ) * pool.allocPoint) / s().totalAllocPoint;
-      accERC20PerShare =
-        ((accERC20PerShare + erc20Reward) * 1e12) /
-        lpSupply;
+      accERC20PerShare += (erc20Reward * 1e12) / lpSupply;
     }
     uint256 userReward = (user.amount * accERC20PerShare) / 1e12;
     if (userReward <= user.rewardDebt) return 0;
