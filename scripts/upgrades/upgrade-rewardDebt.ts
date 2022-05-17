@@ -30,7 +30,7 @@ export async function upgrade() {
     {
       facetAddress: farmFacet.address,
       action: 1,
-      functionSelectors: ["0x93f1a40b"],
+      functionSelectors: ["0x170956ad", "0xe4c75c27"],
     },
   ];
 

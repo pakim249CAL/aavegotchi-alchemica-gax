@@ -2,6 +2,7 @@ pragma solidity 0.8.13;
 
 import "./TestSetupFarm.t.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract FarmTest is TestSetupFarm {
   using Strings for uint256;
@@ -206,7 +207,7 @@ contract FarmTest is TestSetupFarm {
   }
 
   function testHarvest2(uint256 amount, uint8 numTokens) public {
-    vm.assume(amount > 0 && amount <= 1e50);
+    vm.assume(amount > 0 && amount <= 1e30);
     vm.assume(numTokens > 0 && numTokens <= 20);
     for (uint256 i; i < numTokens; i++) {
       farm.add(1, lpTokens[i], true);
@@ -244,29 +245,69 @@ contract FarmTest is TestSetupFarm {
           pending1 = farm.pending(i, address(user1));
           pending2 = farm.pending(i, address(user2));
 
-          uint256 expectedPendingUB1 = (startRewardPerBlock *
+          uint256 expectedPendingUB1 = ((startRewardPerBlock *
             (nextBlock - lastBlock)) /
             10 /
-            numTokens;
-          uint256 expectedPendingLB1 = (endRewardPerBlock *
+            numTokens);
+          uint256 expectedPendingLB1 = ((endRewardPerBlock *
             (nextBlock - lastBlock)) /
             10 /
-            numTokens;
+            numTokens);
           uint256 expectedPendingUB2 = expectedPendingUB1 * 9;
           uint256 expectedPendingLB2 = expectedPendingLB1 * 9;
 
           assertGe(
             pending1,
-            expectedPendingLB1 > 0 ? expectedPendingLB1 - 1 : 0,
-            "1"
+            (Math.min(expectedPendingLB1, expectedPendingUB1) * 99) /
+              100,
+            string(
+              abi.encodePacked(
+                "1 i: ",
+                i.toString(),
+                " j: ",
+                j.toString()
+              )
+            )
           );
-          assertLe(pending1, expectedPendingUB1, "2");
+          assertLe(
+            pending1,
+            (Math.max(expectedPendingLB1, expectedPendingUB1) * 101) /
+              100,
+            string(
+              abi.encodePacked(
+                "2 i: ",
+                i.toString(),
+                " j: ",
+                j.toString()
+              )
+            )
+          );
           assertGe(
             pending2,
-            expectedPendingLB2 > 0 ? expectedPendingLB2 - 1 : 0,
-            "3"
+            (Math.min(expectedPendingLB2, expectedPendingUB2) * 99) /
+              100,
+            string(
+              abi.encodePacked(
+                "3 i: ",
+                i.toString(),
+                " j: ",
+                j.toString()
+              )
+            )
           );
-          assertLe(pending2, expectedPendingUB2, "4");
+          assertLe(
+            pending2,
+            (Math.max(expectedPendingLB2, expectedPendingUB2) * 101) /
+              100,
+            string(
+              abi.encodePacked(
+                "4 i: ",
+                i.toString(),
+                " j: ",
+                j.toString()
+              )
+            )
+          );
         }
         uint256 prevBalance1 = rewardToken.balanceOf(address(user1));
         uint256 prevBalance2 = rewardToken.balanceOf(address(user2));

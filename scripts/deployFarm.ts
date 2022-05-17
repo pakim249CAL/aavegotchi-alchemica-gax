@@ -9,6 +9,7 @@ import {
 import { sleep, address } from "../helpers/utils";
 
 async function main() {
+  let tx;
   const credentials = {
     apiKey: process.env.DEFENDER_API_KEY,
     apiSecret: process.env.DEFENDER_API_SECRET,
@@ -83,7 +84,15 @@ async function main() {
   await diamond.deployed();
   console.log("Diamond: " + diamond.address);
 
-  let tx = await gaxLiquidityTokenReward
+  tx = await gaxLiquidityTokenReward
+    .connect(owner)
+    .transfer(
+      "0xC3c2e1Cf099Bc6e1fA94ce358562BCbD5cc59FE5",
+      ethers.utils.parseEther("10000")
+    );
+  await tx.wait();
+
+  tx = await gaxLiquidityTokenReward
     .connect(owner)
     .transfer(
       diamond.address,
