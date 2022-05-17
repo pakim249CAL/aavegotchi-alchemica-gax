@@ -111,9 +111,9 @@ contract FarmFacet is Ownable, ReentrancyGuard {
         pool.lastRewardBlock,
         nrOfBlocks
       ) * pool.allocPoint) / s().totalAllocPoint;
-      accERC20PerShare += (erc20Reward * 1e12) / lpSupply;
+      accERC20PerShare += (erc20Reward * 1e18) / lpSupply;
     }
-    uint256 userReward = (user.amount * accERC20PerShare) / 1e12;
+    uint256 userReward = (user.amount * accERC20PerShare) / 1e18;
     if (userReward <= user.rewardDebt) return 0;
     else return userReward - user.rewardDebt;
   }
@@ -140,8 +140,9 @@ contract FarmFacet is Ownable, ReentrancyGuard {
   struct UserInfoOutput {
     IERC20 lpToken; // LP Token of the pool
     uint256 allocPoint;
-    uint256 amount; // Amount user has deposited
     uint256 pending; // Amount of reward pending for this lp token pool
+    uint256 userBalance; // Amount user has deposited
+    uint256 poolBalance; // Amount of LP tokens in the pool
   }
 
   function allUserInfo(address _user)
@@ -156,8 +157,9 @@ contract FarmFacet is Ownable, ReentrancyGuard {
       userInfo_[i] = UserInfoOutput({
         lpToken: s().poolInfo[i].lpToken,
         allocPoint: s().poolInfo[i].allocPoint,
-        amount: s().userInfo[i][_user].amount,
-        pending: pending(i, _user)
+        pending: pending(i, _user),
+        userBalance: s().userInfo[i][_user].amount,
+        poolBalance: s().poolInfo[i].lpToken.balanceOf(address(this))
       });
     }
     return userInfo_;

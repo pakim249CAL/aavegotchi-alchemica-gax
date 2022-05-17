@@ -205,6 +205,95 @@ contract FarmTest is TestSetupFarm {
     }
   }
 
+  function testHarvest2(uint256 amount, uint8 numTokens) public {
+    vm.assume(amount > 0 && amount <= 1e50);
+    vm.assume(numTokens > 0 && numTokens <= 20);
+    for (uint256 i; i < numTokens; i++) {
+      farm.add(1, lpTokens[i], true);
+
+      lpTokens[i].mint(address(user1), amount);
+      vm.prank(address(user1));
+      lpTokens[i].approve(address(farm), amount);
+      vm.prank(address(user1));
+      farm.deposit(i, amount);
+
+      lpTokens[i].mint(address(user2), amount * 9);
+      vm.prank(address(user2));
+      lpTokens[i].approve(address(farm), amount * 9);
+      vm.prank(address(user2));
+      farm.deposit(i, amount * 9);
+    }
+
+    vm.roll(startBlock);
+
+    for (uint256 i = 0; i < numTokens; i++) {
+      // Farm runs for 416_100_000 blocks
+      for (uint256 j = 1; j < 1000; j++) {
+        uint256 pending1;
+        uint256 pending2;
+        {
+          uint256 lastBlock = (j - 1)**3;
+          uint256 nextBlock = j**3;
+
+          uint256 startRewardPerBlock = farm.currentRewardPerBlock();
+
+          vm.roll(startBlock + nextBlock);
+
+          uint256 endRewardPerBlock = farm.currentRewardPerBlock();
+
+          pending1 = farm.pending(i, address(user1));
+          pending2 = farm.pending(i, address(user2));
+
+          uint256 expectedPendingUB1 = (startRewardPerBlock *
+            (nextBlock - lastBlock)) /
+            10 /
+            numTokens;
+          uint256 expectedPendingLB1 = (endRewardPerBlock *
+            (nextBlock - lastBlock)) /
+            10 /
+            numTokens;
+          uint256 expectedPendingUB2 = expectedPendingUB1 * 9;
+          uint256 expectedPendingLB2 = expectedPendingLB1 * 9;
+
+          assertGe(
+            pending1,
+            expectedPendingLB1 > 0 ? expectedPendingLB1 - 1 : 0,
+            "1"
+          );
+          assertLe(pending1, expectedPendingUB1, "2");
+          assertGe(
+            pending2,
+            expectedPendingLB2 > 0 ? expectedPendingLB2 - 1 : 0,
+            "3"
+          );
+          assertLe(pending2, expectedPendingUB2, "4");
+        }
+        uint256 prevBalance1 = rewardToken.balanceOf(address(user1));
+        uint256 prevBalance2 = rewardToken.balanceOf(address(user2));
+
+        vm.prank(address(user1));
+        farm.harvest(i);
+
+        vm.prank(address(user2));
+        farm.harvest(i);
+
+        assertEq(farm.pending(i, address(user1)), 0, "5");
+        assertEq(farm.pending(i, address(user2)), 0, "6");
+
+        assertEq(
+          pending1,
+          rewardToken.balanceOf(address(user1)) - prevBalance1,
+          "7"
+        );
+        assertEq(
+          pending2,
+          rewardToken.balanceOf(address(user2)) - prevBalance2,
+          "8"
+        );
+      }
+    }
+  }
+
   function testEmergencyWithdraw(uint256 amount, uint8 numTokens)
     public
   {

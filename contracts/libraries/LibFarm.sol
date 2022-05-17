@@ -203,7 +203,7 @@ library LibFarm {
       nrOfBlocks
     ) * pool.allocPoint) / s().totalAllocPoint;
 
-    pool.accERC20PerShare += (erc20Reward * 1e12) / lpSupply;
+    pool.accERC20PerShare += (erc20Reward * 1e18) / lpSupply;
     pool.lastRewardBlock = block.number;
   }
 
@@ -257,7 +257,7 @@ library LibFarm {
     UserInfo storage user = s().userInfo[_pid][_to];
     updatePool(_pid);
 
-    uint256 userReward = (user.amount * pool.accERC20PerShare) / 1e12;
+    uint256 userReward = (user.amount * pool.accERC20PerShare) / 1e18;
 
     if (user.amount > 0) {
       uint256 pendingAmount = userReward - user.rewardDebt;

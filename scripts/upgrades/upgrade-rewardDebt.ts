@@ -1,35 +1,44 @@
+import * as hre from "hardhat";
 import { ethers, run } from "hardhat";
 import {
   convertFacetAndSelectorsToString,
   DeployUpgradeTaskArgs,
   FacetsAndAddSelectors,
 } from "../../tasks/deployUpgrade";
-import { diamondOwner, maticDiamondAddress } from "../helperFunctions";
+import {
+  diamondOwner,
+  maticDiamondAddress,
+} from "../helperFunctions";
 
 export async function upgrade() {
-  const owner = "0x8FEebfA4aC7AF314d90a0c17C3F91C800cFdE44B";
+  const FarmFacet = await hre.ethers.getContractFactory("FarmFacet");
+  const farmFacet = await FarmFacet.deploy();
+  await farmFacet.deployed();
 
-  const facets: FacetsAndAddSelectors[] = [
+  const diamondCutFacet = await hre.ethers.getContractAt(
+    "DiamondCutFacet",
+    "0xDCd215010246B223819277e6F651E726669cf19A"
+  );
+
+  interface Cut {
+    facetAddress: string;
+    action: 0 | 1 | 2;
+    functionSelectors: string[];
+  }
+
+  const cut: Cut[] = [
     {
-      facetName: "FarmFacet",
-      addSelectors: [],
-      removeSelectors: [],
+      facetAddress: farmFacet.address,
+      action: 1,
+      functionSelectors: ["0x93f1a40b"],
     },
   ];
 
-  const joined = convertFacetAndSelectorsToString(facets);
-
-  const args: DeployUpgradeTaskArgs = {
-    diamondUpgrader: owner,
-    diamondAddress: maticDiamondAddress,
-    facetsAndAddSelectors: joined,
-    useLedger: false,
-    useMultisig: false,
-    initAddress: ethers.constants.AddressZero,
-    initCalldata: "0x",
-  };
-
-  await run("deployUpgrade", args);
+  await diamondCutFacet.diamondCut(
+    cut,
+    ethers.constants.AddressZero,
+    "0x"
+  );
 }
 
 if (require.main === module) {
