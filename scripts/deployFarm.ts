@@ -8,8 +8,51 @@ import {
 
 import { sleep, address } from "../helpers/utils";
 
+interface Allocation {
+  points: BigNumber;
+  address: String;
+  withUpdate: Boolean;
+}
+
 async function main() {
   let tx;
+  const allocations: Allocation[] = [
+    {
+      points: BigNumber.from(1),
+      address: "0x73958d46B7aA2bc94926d8a215Fa560A5CdCA3eA", // wapGHST
+      withUpdate: false,
+    },
+    {
+      points: BigNumber.from(3),
+      address: "0xfEC232CC6F0F3aEb2f81B2787A9bc9F6fc72EA5C", // ghst-fud
+      withUpdate: false,
+    },
+    {
+      points: BigNumber.from(3),
+      address: "0x641CA8d96b01Db1E14a5fBa16bc1e5e508A45f2B", // ghst-fomo
+      withUpdate: false,
+    },
+    {
+      points: BigNumber.from(3),
+      address: "0xC765ECA0Ad3fd27779d36d18E32552Bd7e26Fd7b", // ghst-alpha
+      withUpdate: true,
+    },
+    {
+      points: BigNumber.from(3),
+      address: "0xBFad162775EBfB9988db3F24ef28CA6Bc2fB92f0", // ghst-kek
+      withUpdate: true,
+    },
+    {
+      points: BigNumber.from(3),
+      address: "0x096c5ccb33cfc5732bcd1f3195c13dbefc4c82f4", // ghst-usdc
+      withUpdate: true,
+    },
+    {
+      points: BigNumber.from(1),
+      address: "0xf69e93771F11AECd8E554aA165C3Fe7fd811530c", // ghst-matic
+      withUpdate: true,
+    },
+  ];
   const credentials = {
     apiKey: process.env.DEFENDER_API_KEY,
     apiSecret: process.env.DEFENDER_API_SECRET,
@@ -41,7 +84,7 @@ async function main() {
   await ownershipFacet.deployed();
   console.log("OwnershipFacet: " + ownershipFacet.address);
   const FarmFacet = await hre.ethers.getContractFactory("FarmFacet");
-  const farmFacet = await FarmFacet.connect(owner).deploy();
+  let farmFacet = await FarmFacet.connect(owner).deploy();
   await farmFacet.deployed();
   console.log("FarmFacet: " + farmFacet.address);
   const FarmInit = await hre.ethers.getContractFactory("FarmInit");
@@ -87,7 +130,7 @@ async function main() {
   tx = await gaxLiquidityTokenReward
     .connect(owner)
     .transfer(
-      "0xC3c2e1Cf099Bc6e1fA94ce358562BCbD5cc59FE5",
+      "0x027Ffd3c119567e85998f4E6B9c3d83D5702660c",
       ethers.utils.parseEther("10000")
     );
   await tx.wait();
@@ -116,7 +159,7 @@ async function main() {
   const latestBlock = await hre.ethers.provider.getBlock("latest");
   const latestBlockNumber = latestBlock.number;
   const farmInitParams = {
-    startBlock: latestBlockNumber + 1000,
+    startBlock: 28_471_715,
     decayPeriod: 38000 * 365,
   };
   tx = await farmAndGLTRDeployer
@@ -124,13 +167,28 @@ async function main() {
     .deployFarmAndGLTR(deployedAddresses, farmInitParams);
 
   await tx.wait();
+
+  farmFacet = await hre.ethers.getContractAt(
+    "FarmFacet",
+    diamond.address
+  );
+  for (let i = 0; i < allocations.length; i++) {
+    tx = await farmFacet
+      .connect(owner)
+      .add(
+        allocations[i].points,
+        allocations[i].address,
+        allocations[i].withUpdate
+      );
+    await tx.wait();
+  }
   ownershipFacet = await ethers.getContractAt(
     "OwnershipFacet",
     diamond.address
   );
   tx = await ownershipFacet
     .connect(owner)
-    .transferOwnership("0x8FEebfA4aC7AF314d90a0c17C3F91C800cFdE44B"); // TODO: Change this to whoever we want to transfer ownership of contract to
+    .transferOwnership("0x94cb5C277FCC64C274Bd30847f0821077B231022");
   await tx.wait();
   console.log("Owner: " + (await ownershipFacet.owner()));
 }

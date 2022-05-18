@@ -222,6 +222,7 @@ library LibFarm {
       );
       user.amount += _amount;
     }
+    user.rewardDebt = (user.amount * pool.accERC20PerShare) / 1e18;
     emit Deposit(msg.sender, _pid, _amount);
   }
 
@@ -237,6 +238,7 @@ library LibFarm {
     updatePoolAndHarvest(msg.sender, _pid);
 
     user.amount = user.amount - _amount;
+    user.rewardDebt = (user.amount * pool.accERC20PerShare) / 1e18;
     pool.lpToken.safeTransfer(address(msg.sender), _amount);
     emit Withdraw(msg.sender, _pid, _amount);
   }
